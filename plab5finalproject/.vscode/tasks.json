@@ -13,7 +13,6 @@
 				"${workspaceFolder}/connmgr.c",
 				"${workspaceFolder}/datamgr.c",
 				"${workspaceFolder}/sensor_db.c",
-				"${workspaceFolder}/logger.c",
 				"${workspaceFolder}/lib/tcpsock.c",
 				"-o",
 				"${workspaceFolder}/build/out.exe",

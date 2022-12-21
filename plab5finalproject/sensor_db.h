@@ -16,7 +16,6 @@
 #include <sys/wait.h>
 #include <stdbool.h>
 #include "config.h"
-#include "logger.h"
 #include "sbuffer.h"
 
 extern sbuffer_t *sbuffer;

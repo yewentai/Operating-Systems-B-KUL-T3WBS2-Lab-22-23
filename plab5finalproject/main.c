@@ -29,15 +29,11 @@ char rmsg[SIZE]; // Message to be received from the child process
 
 sbuffer_t *sbuffer = NULL; // Shared buffer
 
-pthread_t tid[99]; // Thread id
-
 typedef struct
 {
     int id;
     char *name;
 } my_element_t;
-
-sbuffer_t *sbuffer = NULL;
 
 int main(int argc, char *argv[])
 {
@@ -60,6 +56,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    pthread_t tid_connmgr, tid_datamgr, tid_storagemgr;
     // system("timedatectl set-timezone Europe/Brussels"); // Set the correct time zone
 
     sbuffer_init(&sbuffer); // Initialize the shared buffer
