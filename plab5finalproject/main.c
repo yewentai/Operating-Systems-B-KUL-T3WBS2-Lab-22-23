@@ -56,7 +56,8 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    pthread_t tid_connmgr, tid_datamgr, tid_storagemgr;
+    pthread_t tid_connmgr, tid_datamgr, tid_storagemgr; // Thread ID of the connection manager, data manager and storage manager
+
     // system("timedatectl set-timezone Europe/Brussels"); // Set the correct time zone
 
     sbuffer_init(&sbuffer); // Initialize the shared buffer
@@ -77,7 +78,7 @@ int main(int argc, char *argv[])
     /***************************
      * Then fork a child process
      ***************************/
-    fflush(NULL);
+    fflush(NULL); // Flush all open streams
     pid = fork();
     if (pid < 0)
     {
@@ -88,7 +89,7 @@ int main(int argc, char *argv[])
     if (pid == 0)
     { // parent process
         close(fd[READ_END]);
-        puts("Gateway is running...");
+        append_log("gateway is running...");
         pthread_t tid[3];
         int ret_create_thread;
         ret_create_thread = pthread_create(tid, NULL, connmgr_listen, NULL);
