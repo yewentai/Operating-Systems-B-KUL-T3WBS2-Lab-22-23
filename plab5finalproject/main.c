@@ -19,7 +19,6 @@
 void *element_copy(void *element);
 void element_free(void **element);
 int element_compare(void *x, void *y);
-void create_log_file(void);
 void append_log(char *msg);
 
 int seq = 0; // Sequence number of the log file
@@ -37,18 +36,14 @@ typedef struct
 
 int main(int argc, char *argv[])
 {
-    /************************************************
-     * Check if the user has provided the port number
-     ************************************************/
+    /******************************************************
+     * Check if the user has provided the right port number
+     ******************************************************/
     if (argc != 2)
     {
         perror("Usage: ./main port");
         exit(EXIT_FAILURE);
     }
-
-    /***********************************
-     * Check if the port number is valid
-     ***********************************/
     int port = atoi(argv[1]);
     if (port < 1024 || port > 65535) // Port number should be between 1024 and 65535
     {
@@ -56,14 +51,26 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    pthread_t tid_connmgr, tid_datamgr, tid_storagemgr; // Thread ID of the connection manager, data manager and storage manager
-
     // system("timedatectl set-timezone Europe/Brussels"); // Set the correct time zone
+
+    pthread_t tid_connmgr, tid_datamgr, tid_storagemgr; // Thread ID of the connection manager, data manager and storage manager
 
     sbuffer_init(&sbuffer); // Initialize the shared buffer
 
-    if (access("gateway.log", F_OK) == -1) // Create the log file
-        create_log_file();
+    /*******************
+     * Create a log file
+     *******************/
+    if (access("gateway.log", F_OK) == -1)
+    {
+        FILE *fp;
+        fp = fopen("gateway.log", "w");
+        if (fp == NULL)
+        {
+            perror("fopen()");
+            exit(1);
+        }
+        fclose(fp);
+    }
 
     /********************************************************
      * Create a pipe between parent and child process(logger)
@@ -75,9 +82,9 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    /***************************
-     * Then fork a child process
-     ***************************/
+    /**********************
+     * Fork a child process
+     **********************/
     fflush(NULL); // Flush all open streams
     pid = fork();
     if (pid < 0)
@@ -89,7 +96,7 @@ int main(int argc, char *argv[])
     if (pid == 0)
     { // parent process
         close(fd[READ_END]);
-        append_log("gateway is running...");
+        // strcpy(rmsg, "Logger process started!");
         pthread_t tid[3];
         int ret_create_thread;
         ret_create_thread = pthread_create(tid, NULL, connmgr_listen, NULL);
@@ -98,13 +105,9 @@ int main(int argc, char *argv[])
             fprintf(stderr, "can't create thread: %s\n", strerror(ret_create_thread));
             exit(EXIT_FAILURE);
         }
-        connmgr(port); // Create a connection manager and start the gateway
-        puts("storage manager is running...");
-        storagemgr(); // Create a storagemgr
-        puts("data manager is running...");
-        datamgr(); // Create a datamgr
 
         close(fd[WRITE_END]);
+
         wait(NULL);
     }
     if (pid > 0)
@@ -116,7 +119,6 @@ int main(int argc, char *argv[])
         }
         close(fd[READ_END]);
 
-        exit(EXIT_SUCCESS);
     }
     exit(EXIT_SUCCESS);
 }
@@ -143,18 +145,6 @@ int element_compare(void *x, void *y)
 {
     return ((((my_element_t *)x)->id < ((my_element_t *)y)->id) ? -1 : (((my_element_t *)x)->id == ((my_element_t *)y)->id) ? 0
                                                                                                                             : 1);
-}
-
-void create_log_file(void)
-{
-    FILE *fp;
-    fp = fopen("gateway.log", "w");
-    if (fp == NULL)
-    {
-        perror("fopen()");
-        exit(1);
-    }
-    fclose(fp);
 }
 
 void append_log(char *msg)
