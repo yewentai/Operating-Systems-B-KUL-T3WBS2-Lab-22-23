@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
     if (access("gateway.log", F_OK) == -1) // Create the log file
         create_log_file();
 
-    /********************************************************
+    /*******************************************************
      * Create a pipe between parent and child process(logger)
      ********************************************************/
     pid_t pid;
