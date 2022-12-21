@@ -21,9 +21,14 @@ void *element_copy(void *element);
 void element_free(void **element);
 int element_compare(void *x, void *y);
 
-int seq = 0;
-int fd[2];
+int seq = 0; // Sequence number of the log file
+
+int fd[2];       // File descriptor for the pipe
 char rmsg[SIZE]; // Message to be received from the child process
+
+sbuffer_t *sbuffer = NULL; // Shared buffer
+
+pthread_t tid[99]; // Thread id
 
 typedef struct
 {
