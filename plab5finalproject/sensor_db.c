@@ -5,7 +5,7 @@ FILE *open_db(char *filename, bool append);
 int insert_sensor(FILE *f, sensor_data_t *data);
 int close_db(FILE *f);
 
-void storagemgr(void)
+void *storagemgr(void *)
 {
     puts("Storage manager started");
     FILE *f = open_db("sensor_data.csv", true); // Open sensor_data.csv with append mode

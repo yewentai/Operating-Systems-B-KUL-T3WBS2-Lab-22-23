@@ -22,7 +22,7 @@ extern sbuffer_t *sbuffer;
 extern int fd[2];       // pipe file descriptor
 extern char rmsg[SIZE]; // Message to be received from the child process
 
-void storagemgr(void);
+void *storagemgr(void *);
 
 /*
 open a text file with a given name, and select open mode.

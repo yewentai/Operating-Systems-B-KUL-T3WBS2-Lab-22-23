@@ -92,25 +92,7 @@ int main(int argc, char *argv[])
         perror("fork()");
         exit(EXIT_FAILURE);
     }
-
-    if (pid == 0)
-    { // parent process
-        close(fd[READ_END]);
-        // strcpy(rmsg, "Logger process started!");
-        pthread_t tid[3];
-        int ret_create_thread;
-        ret_create_thread = pthread_create(tid, NULL, connmgr_listen, NULL);
-        if (ret_create_thread != 0)
-        {
-            fprintf(stderr, "can't create thread: %s\n", strerror(ret_create_thread));
-            exit(EXIT_FAILURE);
-        }
-
-        close(fd[WRITE_END]);
-
-        wait(NULL);
-    }
-    if (pid > 0)
+    else if (pid == 0)
     { // child process
         close(fd[WRITE_END]);
         while (read(fd[READ_END], rmsg, SIZE) > 0)
@@ -118,8 +100,38 @@ int main(int argc, char *argv[])
             append_log(rmsg);
         }
         close(fd[READ_END]);
-
     }
+    else
+    { // parent process
+        close(fd[READ_END]);
+        strcpy(rmsg, "Logger process started!");
+        write(fd[WRITE_END], rmsg, strlen(rmsg) + 1);
+
+        /******************************************************
+         * Create a thread for the connection manager
+         ******************************************************/
+        if (pthread_create(&tid_connmgr, NULL, connmgr, &port) != 0)
+        {
+            perror("pthread_create()");
+            exit(EXIT_FAILURE);
+        }
+
+        /******************************************************
+         * Create a thread for the storage manager
+         ******************************************************/
+        if (pthread_create(&tid_storagemgr, NULL, storagemgr, NULL) != 0)
+        {
+            perror("pthread_create()");
+            exit(EXIT_FAILURE);
+        }
+
+        pthread_join(tid_connmgr, NULL);
+        pthread_join(tid_storagemgr, NULL);
+        close(fd[WRITE_END]);
+
+        wait(NULL);
+    }
+
     exit(EXIT_SUCCESS);
 }
 

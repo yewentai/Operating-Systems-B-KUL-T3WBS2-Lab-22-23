@@ -43,8 +43,10 @@ void *connmgr_listen(void *p)
         pthread_exit(NULL);
 }
 
-void connmgr(int port)
+void *connmgr(void *p)
 {
+        int port = *(int *)p;
+
         pthread_t tid[MAX_CONN];
 
         tcpsock_t *server, *client;

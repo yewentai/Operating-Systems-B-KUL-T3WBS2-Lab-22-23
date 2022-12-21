@@ -16,7 +16,7 @@
 
 extern sbuffer_t *sbuffer;
 
-void connmgr(int port);
+void *connmgr(void *port);
 
 void *connmgr_listen(void *p);
 
