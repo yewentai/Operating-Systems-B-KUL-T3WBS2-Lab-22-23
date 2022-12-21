@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "dplist.h": "c",
+        "assert.h": "c",
+        "stdio.h": "c"
+    }
+}

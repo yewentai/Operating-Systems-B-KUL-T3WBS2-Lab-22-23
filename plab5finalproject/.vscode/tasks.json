@@ -1,0 +1,32 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "cppbuild",
+			"label": "Sensor_Monitoring_System",
+			"command": "/usr/bin/gcc",
+			"args": [
+				"-fdiagnostics-color=always",
+				"-g",
+				"${workspaceFolder}/main.c",
+				"${workspaceFolder}/sbuffer.c",
+				"${workspaceFolder}/connmgr.c",
+				"${workspaceFolder}/datamgr.c",
+				"${workspaceFolder}/sensor_db.c",
+				"${workspaceFolder}/logger.c",
+				"${workspaceFolder}/lib/tcpsock.c",
+				"-o",
+				"${workspaceFolder}/build/out.exe",
+				"-Werror",
+			],
+			"options": {
+				"cwd": "${fileDirname}"
+			},
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build",
+			"detail": "compiler: /usr/bin/gcc"
+		}
+	]
+}
