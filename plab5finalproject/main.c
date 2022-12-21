@@ -14,7 +14,6 @@
 #include "config.h"
 #include "connmgr.h"
 #include "datamgr.h"
-#include "logger.h"
 #include "sensor_db.h"
 
 void *element_copy(void *element);
