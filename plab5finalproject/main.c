@@ -20,6 +20,8 @@
 void *element_copy(void *element);
 void element_free(void **element);
 int element_compare(void *x, void *y);
+void create_log_file(void);
+void append_log(char *msg);
 
 int seq = 0; // Sequence number of the log file
 
@@ -53,7 +55,7 @@ int main(int argc, char *argv[])
      * Check if the port number is valid
      ***********************************/
     int port = atoi(argv[1]);
-    if (port < 1024 || port > 65535)
+    if (port < 1024 || port > 65535) // Port number should be between 1024 and 65535
     {
         perror("Port number should be between 1024 and 65535");
         exit(EXIT_FAILURE);
@@ -61,7 +63,7 @@ int main(int argc, char *argv[])
 
     // system("timedatectl set-timezone Europe/Brussels"); // Set the correct time zone
 
-    sbuffer_init(&sbuffer); // Create a sbuffer
+    sbuffer_init(&sbuffer); // Initialize the shared buffer
 
     if (access("gateway.log", F_OK) == -1) // Create the log file
         create_log_file();
@@ -144,4 +146,33 @@ int element_compare(void *x, void *y)
 {
     return ((((my_element_t *)x)->id < ((my_element_t *)y)->id) ? -1 : (((my_element_t *)x)->id == ((my_element_t *)y)->id) ? 0
                                                                                                                             : 1);
+}
+
+void create_log_file(void)
+{
+    FILE *fp;
+    fp = fopen("gateway.log", "w");
+    if (fp == NULL)
+    {
+        perror("fopen()");
+        exit(1);
+    }
+    fclose(fp);
+}
+
+void append_log(char *msg)
+{
+    FILE *fp;
+    fp = fopen("gateway.log", "a");
+    if (fp == NULL)
+    {
+        perror("fopen()");
+        exit(1);
+    }
+    char time_buffer[128];
+    time_t rawtime; // time_t is a long int
+    time(&rawtime); // get current time
+    strftime(time_buffer, sizeof(time_buffer), "%d/%m/%Y %H:%M:%S", localtime(&rawtime));
+    fprintf(fp, "<%d><%s><%s>\n", seq++, time_buffer, msg);
+    fclose(fp);
 }
