@@ -30,7 +30,9 @@ void *connmgr_listen(void *p)
                 else
                 {
                         free(data);
+                        break;
                 }
+                free(data);
         } while (result == TCP_NO_ERROR);
 
         if (result == TCP_CONNECTION_CLOSED)
@@ -76,5 +78,5 @@ void connmgr(int port)
         for (int i = 0; i < conn_counter; i++)
                 pthread_join(tid[i], NULL);
 
-        exit(EXIT_SUCCESS);
+        puts("connmgr is shutting down");
 }

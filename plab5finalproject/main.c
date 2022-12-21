@@ -86,6 +86,14 @@ int main(int argc, char *argv[])
     { // parent process
         close(fd[READ_END]);
         puts("Gateway is running...");
+        pthread_t tid[3];
+        int ret_create_thread;
+        ret_create_thread = pthread_create(tid, NULL, connmgr_listen, client);
+        if (ret_create_thread != 0)
+        {
+            fprintf(stderr, "can't create thread: %s\n", strerror(ret_create_thread));
+            exit(EXIT_FAILURE);
+        }
         connmgr(port); // Create a connection manager and start the gateway
         puts("storage manager is running...");
         storagemgr(); // Create a storagemgr

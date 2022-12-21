@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/out.exe",
             "args": [
-                "5678"
+                "1234"
             ],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
