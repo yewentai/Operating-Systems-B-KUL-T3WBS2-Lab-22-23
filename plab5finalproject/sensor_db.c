@@ -11,7 +11,7 @@ void *storagemgr()
     strcpy(buffer, "A new data.csv file has been created.");
     write(fd[WRITE_END], buffer, SIZE);
     sensor_data_t *data = malloc(sizeof(sensor_data_t));
-    while (sbuffer_remove(sbuffer, data) != SBUFFER_NO_DATA)
+    while (sbuffer_remove(sbuffer, data) != SBUFFER_FAILURE)
     {
         insert_sensor(f, data);
     }
@@ -19,8 +19,6 @@ void *storagemgr()
     strcpy(buffer, "The data.csv file has been closed.");
     write(fd[WRITE_END], buffer, SIZE);
     free(data);
-
-    exit(EXIT_SUCCESS);
 }
 
 FILE *open_db(char *filename, bool append)

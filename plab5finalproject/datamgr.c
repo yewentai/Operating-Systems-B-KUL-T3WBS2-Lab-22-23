@@ -4,7 +4,7 @@
 #define SET_MIN_TEMP -10
 #define RUN_AVG_LENGTH 5
 
-void *datamgr(void *)
+void *datamgr()
 {
     FILE *fp = fopen("room_sensor.map", "r");
     if (fp == NULL)

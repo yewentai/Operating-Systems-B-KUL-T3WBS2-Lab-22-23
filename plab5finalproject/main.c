@@ -127,23 +127,23 @@ int main(int argc, char *argv[])
             exit(EXIT_FAILURE);
         }
 
-        /**************************************
-         * Create a thread for the data manager
-         **************************************/
-        if (pthread_create(&tid_datamgr, NULL, datamgr, NULL) != 0)
-        {
-            perror("pthread_create()");
-            exit(EXIT_FAILURE);
-        }
-
-        pthread_join(tid_connmgr, NULL);
-        pthread_join(tid_storagemgr, NULL);
-        pthread_join(tid_datamgr, NULL);
+        // /**************************************
+        //  * Create a thread for the data manager
+        //  **************************************/
+        // if (pthread_create(&tid_datamgr, NULL, datamgr, NULL) != 0)
+        // {
+        //     perror("pthread_create()");
+        //     exit(EXIT_FAILURE);
+        // }
 
         close(fd[WRITE_END]);
 
         wait(NULL);
     }
+
+    pthread_join(tid_connmgr, NULL);
+    pthread_join(tid_storagemgr, NULL);
+    // pthread_join(tid_datamgr, NULL);
 
     exit(EXIT_SUCCESS);
 }

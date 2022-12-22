@@ -39,7 +39,7 @@ extern char rmsg[SIZE]; // Message to be received from the child process
     }                                                                                                     \
   } while (0)
 
-void *datamgr(void *);
+void *datamgr();
 
 /**
  *  This method holds the core functionality of your datamgr. It takes in 2 file pointers to the sensor files and parses them.
