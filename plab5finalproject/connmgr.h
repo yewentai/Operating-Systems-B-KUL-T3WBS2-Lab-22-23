@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <inttypes.h>
 #include <pthread.h>
 #include <string.h>

@@ -63,7 +63,7 @@ void *connmgr_listen(void *p)
                 // write data to sbuffer
                 if (result == TCP_NO_ERROR)
                 {
-                        strcpy(rmsg, "Sensor node %d has opened a new connection");
+                        strcpy(rmsg, "Sensor node has opened a new connection");
                         write(fd[WRITE_END], rmsg, strlen(rmsg) + 1);
 
                         pthread_mutex_lock(&mutex);
