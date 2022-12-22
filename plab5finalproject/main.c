@@ -100,6 +100,8 @@ int main(int argc, char *argv[])
             append_log(rmsg);
         }
         close(fd[READ_END]);
+
+        exit(EXIT_SUCCESS);
     }
     else
     { // parent process
@@ -120,6 +122,15 @@ int main(int argc, char *argv[])
          * Create a thread for the storage manager
          ******************************************************/
         if (pthread_create(&tid_storagemgr, NULL, storagemgr, NULL) != 0)
+        {
+            perror("pthread_create()");
+            exit(EXIT_FAILURE);
+        }
+
+        /******************************************************
+         * Create a thread for the data manager
+         ******************************************************/
+        if (pthread_create(&tid_datamgr, NULL, datamgr, NULL) != 0)
         {
             perror("pthread_create()");
             exit(EXIT_FAILURE);

@@ -37,7 +37,7 @@
     }                                                                                                     \
   } while (0)
 
-void datamgr(void);
+void* datamgr (void *);
 
 /**
  *  This method holds the core functionality of your datamgr. It takes in 2 file pointers to the sensor files and parses them.
