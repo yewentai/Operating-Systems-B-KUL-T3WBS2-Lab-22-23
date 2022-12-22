@@ -5,16 +5,19 @@ FILE *open_db(char *filename, bool append);
 int insert_sensor(FILE *f, sensor_data_t *data);
 int close_db(FILE *f);
 
-void *storagemgr(void *)
+void *storagemgr()
 {
-    puts("Storage manager started");
-    FILE *f = open_db("sensor_data.csv", true); // Open sensor_data.csv with append mode
+    FILE *f = open_db("sensor_data.csv", false); // Create sensor_data.csv
+    strcpy(buffer, "A new data.csv file has been created.");
+    write(fd[WRITE_END], buffer, SIZE);
     sensor_data_t *data = malloc(sizeof(sensor_data_t));
     while (sbuffer_remove(sbuffer, data) != SBUFFER_NO_DATA)
     {
         insert_sensor(f, data);
     }
     close_db(f); // Close sensor_data.csv
+    strcpy(buffer, "The data.csv file has been closed.");
+    write(fd[WRITE_END], buffer, SIZE);
     free(data);
 
     exit(EXIT_SUCCESS);
@@ -54,7 +57,7 @@ int insert_sensor(FILE *f, sensor_data_t *data)
 
     strftime(time_buffer, sizeof(time_buffer), "%d/%m/%Y %H:%M:%S", localtime(&data->ts));
     fprintf(f, "%s,%" PRIu16 ",%.1lf\n", time_buffer, data->id, data->value);
-    strcpy(buffer, "Successfully inserted the sensor data");
+    sprintf(buffer, "Data insertion from sensor %d succeeded.", data->id);
     write(fd[WRITE_END], buffer, SIZE);
     exit(EXIT_SUCCESS);
 }

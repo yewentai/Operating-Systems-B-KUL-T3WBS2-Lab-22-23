@@ -109,27 +109,27 @@ int main(int argc, char *argv[])
         strcpy(rmsg, "Gateway started");
         write(fd[WRITE_END], rmsg, strlen(rmsg) + 1);
 
-        /******************************************************
+        /********************************************
          * Create a thread for the connection manager
-         ******************************************************/
+         ********************************************/
         if (pthread_create(&tid_connmgr, NULL, connmgr, &port) != 0)
         {
             perror("pthread_create()");
             exit(EXIT_FAILURE);
         }
 
-        /******************************************************
+        /*****************************************
          * Create a thread for the storage manager
-         ******************************************************/
+         *****************************************/
         if (pthread_create(&tid_storagemgr, NULL, storagemgr, NULL) != 0)
         {
             perror("pthread_create()");
             exit(EXIT_FAILURE);
         }
 
-        /******************************************************
+        /**************************************
          * Create a thread for the data manager
-         ******************************************************/
+         **************************************/
         if (pthread_create(&tid_datamgr, NULL, datamgr, NULL) != 0)
         {
             perror("pthread_create()");
