@@ -46,17 +46,17 @@ void *datamgr(void *)
         //         token = strtok(NULL, " ");
         //         return atoi(token);
         //     }
-        // }
     }
+}
 
-    sensor_value_t datamgr_get_avg(sensor_id_t sensor_id)
-    {
-    }
+sensor_value_t datamgr_get_avg(sensor_id_t sensor_id)
+{
+}
 
-    time_t datamgr_get_last_modified(sensor_id_t sensor_id)
-    {
-    }
+time_t datamgr_get_last_modified(sensor_id_t sensor_id)
+{
+}
 
-    int datamgr_get_total_sensors()
-    {
-    }
+int datamgr_get_total_sensors()
+{
+}

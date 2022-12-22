@@ -21,7 +21,7 @@ void *connmgr(void *p)
         {
                 if (tcp_wait_for_connection(server, &client) != TCP_NO_ERROR)
                         exit(EXIT_FAILURE);
-                printf("Incoming client connection\n");
+                printf("Incoming client connection%d\n", conn_counter + 1);
                 conn_counter++; // the number of connections (also the number of threads)
 
                 int ret_create_thread;
@@ -47,7 +47,7 @@ void *connmgr(void *p)
 void *connmgr_listen(void *p)
 {
         tcpsock_t *client = (tcpsock_t *)p;
-        int bytes, result;
+        int bytes, result, i = 0;
         do
         {
                 sensor_data_t *data = malloc(sizeof(sensor_data_t));
@@ -63,6 +63,9 @@ void *connmgr_listen(void *p)
                 // write data to sbuffer
                 if (result == TCP_NO_ERROR)
                 {
+                        strcpy(rmsg, "Sensor node %d has opened a new connection");
+                        write(fd[WRITE_END], rmsg, strlen(rmsg) + 1);
+
                         pthread_mutex_lock(&mutex);
                         sbuffer_insert(sbuffer, data);
                         pthread_mutex_unlock(&mutex);

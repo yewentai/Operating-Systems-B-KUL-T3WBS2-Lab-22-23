@@ -24,6 +24,8 @@
 #define SET_MIN_TEMP -10
 #endif
 
+extern char rmsg[SIZE]; // Message to be received from the child process
+
 /*
  * Use ERROR_HANDLER() for handling memory allocation problems, invalid sensor IDs, non-existing files, etc.
  */
@@ -37,7 +39,7 @@
     }                                                                                                     \
   } while (0)
 
-void* datamgr (void *);
+void *datamgr(void *);
 
 /**
  *  This method holds the core functionality of your datamgr. It takes in 2 file pointers to the sensor files and parses them.
