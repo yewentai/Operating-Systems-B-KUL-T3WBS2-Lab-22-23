@@ -4,45 +4,6 @@
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-void *connmgr_listen(void *p)
-{
-        tcpsock_t *client = (tcpsock_t *)p;
-        int bytes, result;
-        do
-        {
-                sensor_data_t *data = malloc(sizeof(sensor_data_t));
-                // read sensor ID
-                bytes = sizeof(data->id);
-                result = tcp_receive(client, (void *)&data->id, &bytes);
-                // read temperature
-                bytes = sizeof(data->value);
-                result = tcp_receive(client, (void *)&data->value, &bytes);
-                // read timestamp
-                bytes = sizeof(data->ts);
-                result = tcp_receive(client, (void *)&data->ts, &bytes);
-                // write data to sbuffer
-                if (result == TCP_NO_ERROR)
-                {
-                        pthread_mutex_lock(&mutex);
-                        sbuffer_insert(sbuffer, data);
-                        pthread_mutex_unlock(&mutex);
-                }
-                else
-                {
-                        free(data);
-                        break;
-                }
-                free(data);
-        } while (result == TCP_NO_ERROR);
-
-        if (result == TCP_CONNECTION_CLOSED)
-                printf("Peer has closed connection\n");
-        else
-                printf("Error occured on connection to peer\n");
-        tcp_close(&client);
-        pthread_exit(NULL);
-}
-
 void *connmgr(void *p)
 {
         int port = *(int *)p;
@@ -81,4 +42,43 @@ void *connmgr(void *p)
                 pthread_join(tid[i], NULL);
 
         puts("connmgr is shutting down");
+}
+
+void *connmgr_listen(void *p)
+{
+        tcpsock_t *client = (tcpsock_t *)p;
+        int bytes, result;
+        do
+        {
+                sensor_data_t *data = malloc(sizeof(sensor_data_t));
+                // read sensor ID
+                bytes = sizeof(data->id);
+                result = tcp_receive(client, (void *)&data->id, &bytes);
+                // read temperature
+                bytes = sizeof(data->value);
+                result = tcp_receive(client, (void *)&data->value, &bytes);
+                // read timestamp
+                bytes = sizeof(data->ts);
+                result = tcp_receive(client, (void *)&data->ts, &bytes);
+                // write data to sbuffer
+                if (result == TCP_NO_ERROR)
+                {
+                        pthread_mutex_lock(&mutex);
+                        sbuffer_insert(sbuffer, data);
+                        pthread_mutex_unlock(&mutex);
+                }
+                else
+                {
+                        free(data);
+                        break;
+                }
+                free(data);
+        } while (result == TCP_NO_ERROR);
+
+        if (result == TCP_CONNECTION_CLOSED)
+                printf("Peer has closed connection\n");
+        else
+                printf("Error occured on connection to peer\n");
+        tcp_close(&client);
+        pthread_exit(NULL);
 }

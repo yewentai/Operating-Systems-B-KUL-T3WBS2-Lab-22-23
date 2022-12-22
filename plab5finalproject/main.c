@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
     else
     { // parent process
         close(fd[READ_END]);
-        strcpy(rmsg, "Logger process started!");
+        strcpy(rmsg, "Gateway started");
         write(fd[WRITE_END], rmsg, strlen(rmsg) + 1);
 
         /******************************************************
@@ -138,6 +138,8 @@ int main(int argc, char *argv[])
 
         pthread_join(tid_connmgr, NULL);
         pthread_join(tid_storagemgr, NULL);
+        pthread_join(tid_datamgr, NULL);
+
         close(fd[WRITE_END]);
 
         wait(NULL);
