@@ -19,34 +19,33 @@ void *datamgr(void *)
         char *token = strtok(line, " ");
         printf("%s", token);
     }
+}
 
-    void datamgr_parse_sensor_files(FILE * fp_sensor_map, FILE * fp_sensor_data)
-    {
-    }
+void datamgr_parse_sensor_files(FILE *fp_sensor_map, FILE *fp_sensor_data)
+{
+}
 
-    void datamgr_free()
-    {
-    }
+void datamgr_free()
+{
+}
 
-    uint16_t datamgr_get_room_id(sensor_id_t sensor_id)
+uint16_t datamgr_get_room_id(sensor_id_t sensor_id)
+{
+    FILE *fp = fopen("room_sensor.map", "r");
+    if (fp == NULL)
     {
-        FILE *fp = fopen("room_sensor.map", "r");
-        if (fp == NULL)
-        {
-            perror("fopen");
-            exit(EXIT_FAILURE);
-        }
-        // while (!feof(fp))
-        // {
-        //     char line[100];
-        //     fgets(line, 100, fp);
-        //     char *token = strtok(line, " ");
-        //     if (strcmp(token, sensor_id) == 0)
-        //     {
-        //         token = strtok(NULL, " ");
-        //         return atoi(token);
-        //     }
+        perror("fopen");
+        exit(EXIT_FAILURE);
     }
+    // while (!feof(fp))
+    // {
+    //     char line[100];
+    //     fgets(line, 100, fp);
+    //     char *token = strtok(line, " ");
+    //     if (strcmp(token, sensor_id) == 0)
+    //     {
+    //         token = strtok(NULL, " ");
+    //         return atoi(token);
 }
 
 sensor_value_t datamgr_get_avg(sensor_id_t sensor_id)
