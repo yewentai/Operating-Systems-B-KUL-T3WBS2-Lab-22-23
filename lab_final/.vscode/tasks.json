@@ -17,7 +17,10 @@
 				"${workspaceFolder}/lib/dplist.c",
 				"-o",
 				"${workspaceFolder}/build/out.exe",
-				"-Werror"
+				"-Werror",
+				"-DSET_MIN_TEMP=10",
+				"-DSET_MAX_TEMP=20",
+				"-DTIMEOUT=5"
 			],
 			"options": {
 				"cwd": "${fileDirname}"

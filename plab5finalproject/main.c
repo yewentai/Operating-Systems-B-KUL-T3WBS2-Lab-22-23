@@ -30,17 +30,28 @@ int main(int argc, char *argv[])
      * The port of this TCP connection is given as a command line
      * argument at start-up of the main process, e.g. ./server 1234.
      **************************************************************/
-    if (argc != 2
-    {)// Check the number of arguments
+    if (argc != 2)
+    { // Check the number of arguments
         perror("Usage: ./main port");
         exit(EXIT_FAILURE);
     }
     int port = atoi(argv[1]);
     if (port < MIN_PORT || port > MAX_PORT)
-    {// Check the port number
+    { // Check the port number
         perror("Port number should be between 1024 and 65535");
         exit(EXIT_FAILURE);
     }
+
+    /******************************************************************************
+     * Each time theserver is started, a new empty gateway.log file should be created.
+     ******************************************************************************/
+    FILE *fp = fopen("gateway.log", "w");
+    if (fp == NULL)
+    {
+        perror("fopen()");
+        exit(EXIT_FAILURE);
+    }
+    fclose(fp);
 
     /************************************************************************
      * The main process runs three threads at startup: the connection manager,
@@ -88,7 +99,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
     else if (pid == 0)
-    {//The log process is started (with fork) as a child process of the main process.
+    { // The log process is started (with fork) as a child process of the main process.
         close(fd[WRITE_END]);
         while (read(fd[READ_END], log_msg, SIZE) > 0)
         {
@@ -101,8 +112,6 @@ int main(int argc, char *argv[])
     else
     { // parent process
         close(fd[READ_END]);
-        strcpy(log_msg, "Gateway started");
-        write(fd[WRITE_END], log_msg, strlen(log_msg) + 1);
 
         close(fd[WRITE_END]);
 
@@ -118,8 +127,7 @@ int main(int argc, char *argv[])
 
 /**
  * A log-event contains an ASCII info message describing the type of event.
- * For eachlog-event received, the log process writes an ASCII message of the format
- * <sequence number> <timestamp> <log-event info message>
+ * For eachlog-event received, the log process writes an ASCII message
  * to a new line in a log file called “gateway.log”.
  * \param msg The log message
  */
@@ -136,6 +144,6 @@ void append_log(char *msg)
     time_t rawtime; // time_t is a long int
     time(&rawtime); // get current time
     strftime(time_buffer, sizeof(time_buffer), "%d/%m/%Y %H:%M:%S", localtime(&rawtime));
-    fprintf(fp, "<%d><%s><%s>\n", seq++, time_buffer, msg);
+    fprintf(fp, "%d %s %s\n", seq++, time_buffer, msg);
     fclose(fp);
 }

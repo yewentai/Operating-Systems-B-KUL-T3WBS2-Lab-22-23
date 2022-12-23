@@ -43,14 +43,11 @@ static int element_compare(void *x, void *y);
     }                                                                                                     \
   } while (0)
 
-void *datamgr();
-
 /**
  * The data manager thread implements the server intelligence as defined in plab1.
  * The room-sensor mapping is read from a text file “room_sensor.map”.
  * The data manager reads sensor measurements from the shared in-memory data buffer.
  *  \param fp_sensor_map file pointer to the map file
- *  \param fp_sensor_data file pointer to the binary data file
  */
 void datamgr(FILE *fp_sensor_map);
 

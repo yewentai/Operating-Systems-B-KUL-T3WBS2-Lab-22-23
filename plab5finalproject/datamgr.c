@@ -10,8 +10,6 @@ void datamgr(FILE *fp_sensor_map)
         char *token = strtok(line, ",");
         sensor_id_t sensor_id = atoi(token);
         token = strtok(NULL, ",");
-        room_id_t room_id = atoi(token);
-        datamgr_parse_sensor_data(sensor_id, room_id);
     }
     free(line);
 }
