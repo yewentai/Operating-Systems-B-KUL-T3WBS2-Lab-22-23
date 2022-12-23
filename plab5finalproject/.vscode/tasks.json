@@ -14,6 +14,7 @@
 				"${workspaceFolder}/datamgr.c",
 				"${workspaceFolder}/sensor_db.c",
 				"${workspaceFolder}/lib/tcpsock.c",
+				"${workspaceFolder}/lib/dplist.c",
 				"-o",
 				"${workspaceFolder}/build/out",
 				"-DSET_MIN_TEMP=10",

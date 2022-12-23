@@ -33,7 +33,7 @@
                     "text": "-gdb-set follow-fork-mode parent"
                 }
             ]
-        }
+        },
         {
             "name": "Attach",
             "type": "cppdbg",
