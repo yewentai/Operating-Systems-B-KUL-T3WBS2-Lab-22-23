@@ -16,9 +16,6 @@
 #include "datamgr.h"
 #include "sensor_db.h"
 
-void *element_copy(void *element);
-void element_free(void **element);
-int element_compare(void *x, void *y);
 void append_log(char *msg);
 
 int seq = 0; // Sequence number of the log file
@@ -27,12 +24,6 @@ int fd[2];          // File descriptor for the pipe
 char log_msg[SIZE]; // Message to be received from the child process
 
 sbuffer_t *sbuffer = NULL; // Shared buffer
-
-typedef struct
-{
-    int id;
-    char *name;
-} my_element_t;
 
 int main(int argc, char *argv[])
 {
@@ -131,30 +122,6 @@ int main(int argc, char *argv[])
     // pthread_join(tid_datamgr, NULL);
 
     exit(EXIT_SUCCESS);
-}
-
-void *element_copy(void *element)
-{
-    my_element_t *copy = malloc(sizeof(my_element_t));
-    assert(copy != NULL);
-    char *new_name;
-    asprintf(&new_name, "%s", ((my_element_t *)element)->name); // asprintf requires _GNU_SOURCE
-    copy->id = ((my_element_t *)element)->id;
-    copy->name = new_name;
-    return (void *)copy;
-}
-
-void element_free(void **element)
-{
-    free((((my_element_t *)*element))->name);
-    free(*element);
-    *element = NULL;
-}
-
-int element_compare(void *x, void *y)
-{
-    return ((((my_element_t *)x)->id < ((my_element_t *)y)->id) ? -1 : (((my_element_t *)x)->id == ((my_element_t *)y)->id) ? 0
-                                                                                                                            : 1);
 }
 
 void append_log(char *msg)

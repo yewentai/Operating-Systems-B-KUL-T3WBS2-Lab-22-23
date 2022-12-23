@@ -10,6 +10,7 @@
 #include <time.h>
 #include <string.h>
 #include "config.h"
+#include "lib/dplist.h"
 #include "sbuffer.h"
 
 #ifndef RUN_AVG_LENGTH
@@ -24,7 +25,12 @@
 #define SET_MIN_TEMP -10
 #endif
 
-extern char rmsg[SIZE]; // Message to be received from the child process
+static dplist_t *list = NULL; // Pointer to the list
+extern char rmsg[SIZE];       // Message to be received from the child process
+
+static void *element_copy(void *element);
+static void element_free(void **element);
+static int element_compare(void *x, void *y);
 
 /*
  * Use ERROR_HANDLER() for handling memory allocation problems, invalid sensor IDs, non-existing files, etc.
