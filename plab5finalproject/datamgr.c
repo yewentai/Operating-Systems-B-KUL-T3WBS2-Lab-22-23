@@ -52,22 +52,25 @@ void *element_copy(void *element)
 {
     my_element_t *copy = malloc(sizeof(my_element_t));
     assert(copy != NULL);
-    char *new_name;
-    asprintf(&new_name, "%s", ((my_element_t *)element)->name); // asprintf requires _GNU_SOURCE
-    copy->id = ((my_element_t *)element)->id;
-    copy->name = new_name;
+    copy->sensor_id = ((my_element_t *)element)->sensor_id;
+    copy->room_id = ((my_element_t *)element)->room_id;
+    copy->avg = ((my_element_t *)element)->avg;
+    copy->last_modified = ((my_element_t *)element)->last_modified;
     return (void *)copy;
 }
 
 void element_free(void **element)
 {
-    free((((my_element_t *)*element))->name);
+    free((((my_element_t *)*element))->sensor_id);
+    free((((my_element_t *)*element))->room_id);
+    free((((my_element_t *)*element))->avg);
+    free((((my_element_t *)*element))->last_modified);
     free(*element);
     *element = NULL;
 }
 
 int element_compare(void *x, void *y)
 {
-    return ((((my_element_t *)x)->id < ((my_element_t *)y)->id) ? -1 : (((my_element_t *)x)->id == ((my_element_t *)y)->id) ? 0
-                                                                                                                            : 1);
+    return ((((my_element_t *)x)->sensor_id < ((my_element_t *)y)->sensor_id) ? -1 : (((my_element_t *)x)->sensor_id == ((my_element_t *)y)->sensor_id) ? 0
+                                                                                                                                                        : 1);
 }

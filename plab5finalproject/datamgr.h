@@ -19,11 +19,6 @@
 
 static dplist_t *list = NULL; // Pointer to the list
 extern char rmsg[SIZE];       // Message to be received from the child process
-typedef struct
-{
-  int id;
-  char *name;
-} my_element_t;
 
 static void *element_copy(void *element);
 static void element_free(void **element);
