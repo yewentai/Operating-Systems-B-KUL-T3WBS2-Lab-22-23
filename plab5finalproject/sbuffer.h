@@ -2,9 +2,14 @@
  * \author Wentai Ye
  */
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <pthread.h>
+#include "config.h"
+
 #ifndef _SBUFFER_H_
 #define _SBUFFER_H_
-#include "config.h"
+
 #define SBUFFER_FAILURE -1
 #define SBUFFER_SUCCESS 0
 #define SBUFFER_NO_DATA 1

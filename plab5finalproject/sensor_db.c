@@ -1,9 +1,5 @@
 #include "sensor_db.h"
 
-FILE *open_db(char *filename, bool append);
-int insert_sensor(FILE *f, sensor_data_t *data);
-int close_db(FILE *f);
-
 void *storagemgr()
 {
     FILE *f = open_db("sensor_data.csv", false); // Create sensor_data.csv

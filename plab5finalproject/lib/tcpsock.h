@@ -2,19 +2,26 @@
  * \author Luc Vandeurzen
  */
 
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+
 #ifndef __TCPSOCK_H__
 #define __TCPSOCK_H__
 
-#define MIN_PORT    1024
-#define MAX_PORT    65536
-
-#define    TCP_NO_ERROR             0
-#define    TCP_SOCKET_ERROR         1   // invalid socket
-#define    TCP_ADDRESS_ERROR        2   // invalid port and/or IP address
-#define    TCP_SOCKOP_ERROR         3   // socket operator (socket, listen, bind, accept,...) error
-#define    TCP_CONNECTION_CLOSED    4   // send/receive indicate connection is closed
-#define    TCP_MEMORY_ERROR         5   // mem alloc error
-
+#define _GNU_SOURCE
+#define MIN_PORT 1024
+#define MAX_PORT 65536
+#define TCP_NO_ERROR 0
+#define TCP_SOCKET_ERROR 1      // invalid socket
+#define TCP_ADDRESS_ERROR 2     // invalid port and/or IP address
+#define TCP_SOCKOP_ERROR 3      // socket operator (socket, listen, bind, accept,...) error
+#define TCP_CONNECTION_CLOSED 4 // send/receive indicate connection is closed
+#define TCP_MEMORY_ERROR 5      // mem alloc error
 #define MAX_PENDING 10
 
 typedef struct tcpsock tcpsock_t;
@@ -47,7 +54,6 @@ int tcp_passive_open(tcpsock_t **socket, int port);
  * \return TCP_NO_ERROR if no error occurs during execution
  */
 int tcp_active_open(tcpsock_t **socket, int remote_port, char *remote_ip);
-
 
 /**
  * The socket '*socket' is closed , allocated resources are freed and '*socket' is set to NULL
@@ -124,4 +130,4 @@ int tcp_get_port(tcpsock_t *socket, int *port);
  */
 int tcp_get_sd(tcpsock_t *socket, int *sd);
 
-#endif  //__TCPSOCK_H__
+#endif //__TCPSOCK_H__

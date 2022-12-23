@@ -1,7 +1,5 @@
 #include "connmgr.h"
 
-#define MAX_CONN 3 // state the max. number of connections the server will handle before exiting
-
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void *connmgr(void *p)

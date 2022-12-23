@@ -1,15 +1,5 @@
 #include "datamgr.h"
 
-#define SET_MAX_TEMP 40
-#define SET_MIN_TEMP -10
-#define RUN_AVG_LENGTH 5
-
-typedef struct
-{
-    int id;
-    char *name;
-} my_element_t;
-
 void *datamgr()
 {
     FILE *map = fopen("room_sensor.map", "r");

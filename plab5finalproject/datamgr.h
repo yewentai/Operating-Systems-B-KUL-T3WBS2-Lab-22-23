@@ -2,9 +2,6 @@
  * \author Wentai Ye
  */
 
-#ifndef DATAMGR_H_
-#define DATAMGR_H_
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
@@ -13,20 +10,20 @@
 #include "lib/dplist.h"
 #include "sbuffer.h"
 
-#ifndef RUN_AVG_LENGTH
-#define RUN_AVG_LENGTH 5
-#endif
+#ifndef DATAMGR_H_
+#define DATAMGR_H_
 
-#ifndef SET_MAX_TEMP
 #define SET_MAX_TEMP 40
-#endif
-
-#ifndef SET_MIN_TEMP
 #define SET_MIN_TEMP -10
-#endif
+#define RUN_AVG_LENGTH 5
 
 static dplist_t *list = NULL; // Pointer to the list
 extern char rmsg[SIZE];       // Message to be received from the child process
+typedef struct
+{
+  int id;
+  char *name;
+} my_element_t;
 
 static void *element_copy(void *element);
 static void element_free(void **element);

@@ -15,15 +15,14 @@
 #include "connmgr.h"
 #include "datamgr.h"
 #include "sensor_db.h"
+#include "lib/tcpsock.h"
+
+int seq = 0;               // Sequence number of the log file
+int fd[2];                 // File descriptor for the pipe
+char log_msg[SIZE];        // Message to be received from the child process
+sbuffer_t *sbuffer = NULL; // Shared buffer
 
 void append_log(char *msg);
-
-int seq = 0; // Sequence number of the log file
-
-int fd[2];          // File descriptor for the pipe
-char log_msg[SIZE]; // Message to be received from the child process
-
-sbuffer_t *sbuffer = NULL; // Shared buffer
 
 int main(int argc, char *argv[])
 {
@@ -36,7 +35,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
     int port = atoi(argv[1]);
-    if (port < 1024 || port > 65535) // Port number should be between 1024 and 65535
+    if (port < MIN_PORT || port > MAX_PORT)
     {
         perror("Port number should be between 1024 and 65535");
         exit(EXIT_FAILURE);
