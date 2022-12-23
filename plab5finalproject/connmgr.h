@@ -27,7 +27,7 @@ extern int fd[2];          // File descriptor for the pipe
 extern sbuffer_t *sbuffer;
 
 /**
- * \brief The connection manager listens on a TCP socket for incoming connection requests
+ * The connection manager listens on a TCP socket for incoming connection requests
 from new sensor nodes.
  * \param port The port number
  */

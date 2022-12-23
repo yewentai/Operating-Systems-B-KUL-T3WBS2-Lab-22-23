@@ -22,6 +22,10 @@ extern sbuffer_t *sbuffer;
 extern int fd[2];          // pipe file descriptor
 extern char log_msg[SIZE]; // Message to be received from the child process
 
+/**
+ * The storage manager thread reads sensor measurements from the shared data buffer
+ * and inserts them into a csv-file “data.csv”
+ */
 void *storagemgr();
 
 /*

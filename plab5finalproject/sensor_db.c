@@ -2,7 +2,7 @@
 
 void *storagemgr()
 {
-    FILE *f = open_db("sensor_data.csv", false); // Create sensor_data.csv
+    FILE *f = open_db("sensor_data.csv", false); // A new, empty data.csv should be created when the server starts up. It should not be deleted when the server stops.
     strcpy(log_msg, "A new data.csv file has been created.");
     write(fd[WRITE_END], log_msg, SIZE);
     sensor_data_t *data = malloc(sizeof(sensor_data_t));

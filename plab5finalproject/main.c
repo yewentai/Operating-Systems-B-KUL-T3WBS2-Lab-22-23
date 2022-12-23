@@ -26,10 +26,10 @@ void append_log(char *msg);
 
 int main(int argc, char *argv[])
 {
-    /******************************************************
+    /**************************************************************
      * The port of this TCP connection is given as a command line
      * argument at start-up of the main process, e.g. ./server 1234.
-     ******************************************************/
+     **************************************************************/
     if (argc != 2
     {)// Check the number of arguments
         perror("Usage: ./main port");
@@ -68,9 +68,11 @@ int main(int argc, char *argv[])
      ***********************************************************************/
     sbuffer_init(&sbuffer); // Initialize the shared buffer
 
-    /******************************************************************
+    /****************************************************************************************
      * The sensor gateway consists of a main process and a log process.
-     ******************************************************************/
+     * The log process receives log-events from the main process using a pipe.
+     * All threads of the server process can generate log-events and write these to the pipe.
+     ****************************************************************************************/
     pid_t pid;
     if (pipe(fd) == -1) // Create a pipe between parent and child process(logger)
     {
@@ -86,7 +88,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
     else if (pid == 0)
-    { // The log process is started (with fork) as a child process of the main process.
+    {//The log process is started (with fork) as a child process of the main process.
         close(fd[WRITE_END]);
         while (read(fd[READ_END], log_msg, SIZE) > 0)
         {
@@ -114,6 +116,13 @@ int main(int argc, char *argv[])
     exit(EXIT_SUCCESS);
 }
 
+/**
+ * A log-event contains an ASCII info message describing the type of event.
+ * For eachlog-event received, the log process writes an ASCII message of the format
+ * <sequence number> <timestamp> <log-event info message>
+ * to a new line in a log file called “gateway.log”.
+ * \param msg The log message
+ */
 void append_log(char *msg)
 {
     FILE *fp;
