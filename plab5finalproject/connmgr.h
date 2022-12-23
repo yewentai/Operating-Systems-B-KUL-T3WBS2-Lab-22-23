@@ -22,7 +22,16 @@ extern int seq;            // Sequence number of the log file
 extern int fd[2];          // File descriptor for the pipe
 extern sbuffer_t *sbuffer;
 
+/**
+ * \brief This function is used to handle the connection with the client
+ * \param port The port number
+ */
 void *connmgr(void *port);
+
+/**
+ * \brief This function is used to listen to the port
+ * \param p The port number
+ */
 void *connmgr_listen(void *p);
 
 #endif // CONNMGR_H_
