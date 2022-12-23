@@ -5,14 +5,12 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 void *connmgr(void *p)
 {
         int port = *(int *)p;
-
         pthread_t tid[MAX_CONN];
-
         tcpsock_t *server, *client;
-
         int conn_counter = 0;
 
-        printf("Test server is started\n");
+        puts("Test server is started\n");
+
         if (tcp_passive_open(&server, port) != TCP_NO_ERROR)
                 exit(EXIT_FAILURE);
         do
@@ -81,7 +79,11 @@ void *connmgr_listen(void *p)
         } while (result == TCP_NO_ERROR);
 
         if (result == TCP_CONNECTION_CLOSED)
+        {
+                sprintf(log_msg, "Sensor node %d has closed the connection", data->id);
+                write(fd[WRITE_END], log_msg, strlen(log_msg) + 1);
                 printf("Peer has closed connection\n");
+        }
         else
                 printf("Error occured on connection to peer\n");
         tcp_close(&client);

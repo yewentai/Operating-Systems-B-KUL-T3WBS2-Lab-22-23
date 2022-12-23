@@ -40,7 +40,7 @@ append a single sensor reading to the csv file.
 param f: the file pointer to the csv file
 param data: the sensor reading to append
 */
-int insert_sensor(FILE *f, sensor_data_t *data);
+void insert_sensor(FILE *f, sensor_data_t *data);
 
 /*
 close the csv file.
