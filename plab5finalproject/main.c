@@ -65,11 +65,12 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    // if (pthread_create(&tid_storagemgr, NULL, storagemgr, NULL) != 0)
-    // {
-    //     perror("pthread_create()");
-    //     exit(EXIT_FAILURE);
-    // }
+    if (pthread_create(&tid_storagemgr, NULL, storagemgr, NULL) != 0)
+    {
+        perror("pthread_create()");
+        exit(EXIT_FAILURE);
+    }
+
     // if (pthread_create(&tid_datamgr, NULL, datamgr, NULL) != 0)
     // {
     //     perror("pthread_create()");
@@ -128,8 +129,8 @@ int main(int argc, char *argv[])
             }
         }
 
-        pthread_join(tid_connmgr, NULL);
-        // pthread_join(tid_storagemgr, NULL);
+        // pthread_join(tid_connmgr, NULL);
+        pthread_join(tid_storagemgr, NULL);
         // pthread_join(tid_datamgr, NULL);
         close(fd[WRITE_END]);
         wait(NULL);
