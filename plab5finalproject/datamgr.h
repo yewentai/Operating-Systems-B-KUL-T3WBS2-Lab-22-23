@@ -13,8 +13,14 @@
 #ifndef DATAMGR_H_
 #define DATAMGR_H_
 
-#define SET_MAX_TEMP 40
-#define SET_MIN_TEMP -10
+#ifndef SET_MAX_TEMP
+#error SET_MAX_TEMP not set
+#endif
+
+#ifndef SET_MIN_TEMP
+#error SET_MIN_TEMP not set
+#endif
+
 #define RUN_AVG_LENGTH 5
 
 static dplist_t *list = NULL; // Pointer to the list
@@ -40,12 +46,13 @@ static int element_compare(void *x, void *y);
 void *datamgr();
 
 /**
- *  This method holds the core functionality of your datamgr. It takes in 2 file pointers to the sensor files and parses them.
- *  When the method finishes all data should be in the internal pointer list and all log messages should be printed to stderr.
+ * The data manager thread implements the server intelligence as defined in plab1.
+ * The room-sensor mapping is read from a text file “room_sensor.map”.
+ * The data manager reads sensor measurements from the shared in-memory data buffer.
  *  \param fp_sensor_map file pointer to the map file
  *  \param fp_sensor_data file pointer to the binary data file
  */
-void datamgr_parse_sensor_files(FILE *fp_sensor_map, FILE *fp_sensor_data);
+void datamgr(FILE *fp_sensor_map);
 
 /**
  * This method should be called to clean up the datamgr, and to free all used memory.

@@ -1,24 +1,19 @@
 #include "datamgr.h"
 
-void *datamgr()
+void datamgr(FILE *fp_sensor_map)
 {
-    FILE *map = fopen("room_sensor.map", "r");
-    if (map == NULL)
+    char *line = NULL;
+    size_t len = 0;
+    ssize_t read;
+    while ((read = getline(&line, &len, fp_sensor_map)) != -1)
     {
-        perror("fopen");
-        exit(EXIT_FAILURE);
+        char *token = strtok(line, ",");
+        sensor_id_t sensor_id = atoi(token);
+        token = strtok(NULL, ",");
+        room_id_t room_id = atoi(token);
+        datamgr_parse_sensor_data(sensor_id, room_id);
     }
-    FILE *csv = fopen("sensor_data.csv", "r");
-    if (csv == NULL)
-    {
-        perror("fopen");
-        exit(EXIT_FAILURE);
-    }
-    datamgr_parse_sensor_files(map, csv);
-}
-
-void datamgr_parse_sensor_files(FILE *fp_sensor_map, FILE *fp_sensor_data)
-{
+    free(line);
 }
 
 void datamgr_free()
@@ -61,10 +56,6 @@ void *element_copy(void *element)
 
 void element_free(void **element)
 {
-    free((((my_element_t *)*element))->sensor_id);
-    free((((my_element_t *)*element))->room_id);
-    free((((my_element_t *)*element))->avg);
-    free((((my_element_t *)*element))->last_modified);
     free(*element);
     *element = NULL;
 }

@@ -22,6 +22,10 @@ void *connmgr(void *p)
                 printf("Incoming client connection%d\n", conn_counter + 1);
                 conn_counter++; // the number of connections (also the number of threads)
 
+                /******************************************************************
+                 *For each client-side node communicating with the server, there is
+                 *a dedicated thread to process incoming data at the server.
+                 ******************************************************************/
                 int ret_create_thread;
                 ret_create_thread = pthread_create(tid + conn_counter, NULL, connmgr_listen, client);
                 if (ret_create_thread != 0)

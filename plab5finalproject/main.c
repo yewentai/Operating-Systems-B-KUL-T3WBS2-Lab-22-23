@@ -27,39 +27,57 @@ void append_log(char *msg);
 int main(int argc, char *argv[])
 {
     /******************************************************
-     * Check if the user has provided the right port number
+     * The port of this TCP connection is given as a command line
+     * argument at start-up of the main process, e.g. ./server 1234.
      ******************************************************/
-    if (argc != 2)
-    {
+    if (argc != 2
+    {)// Check the number of arguments
         perror("Usage: ./main port");
         exit(EXIT_FAILURE);
     }
     int port = atoi(argv[1]);
     if (port < MIN_PORT || port > MAX_PORT)
-    {
+    {// Check the port number
         perror("Port number should be between 1024 and 65535");
         exit(EXIT_FAILURE);
     }
 
-    // system("timedatectl set-timezone Europe/Brussels"); // Set the correct time zone
+    /************************************************************************
+     * The main process runs three threads at startup: the connection manager,
+     * the datamanager, and the storage manager thread.
+     ************************************************************************/
+    pthread_t tid_connmgr, tid_datamgr, tid_storagemgr;
+    if (pthread_create(&tid_connmgr, NULL, connmgr, &port) != 0)
+    {
+        perror("pthread_create()");
+        exit(EXIT_FAILURE);
+    }
+    if (pthread_create(&tid_storagemgr, NULL, storagemgr, NULL) != 0)
+    {
+        perror("pthread_create()");
+        exit(EXIT_FAILURE);
+    }
+    // if (pthread_create(&tid_datamgr, NULL, datamgr, NULL) != 0)
+    // {
+    //     perror("pthread_create()");
+    //     exit(EXIT_FAILURE);
+    // }
 
-    pthread_t tid_connmgr, tid_datamgr, tid_storagemgr; // Thread ID of the connection manager, data manager and storage manager
-
+    /**********************************************************************
+     *A shared data structure is used for communication between all threads.
+     ***********************************************************************/
     sbuffer_init(&sbuffer); // Initialize the shared buffer
 
-    /********************************************************
-     * Create a pipe between parent and child process(logger)
-     ********************************************************/
+    /******************************************************************
+     * The sensor gateway consists of a main process and a log process.
+     ******************************************************************/
     pid_t pid;
-    if (pipe(fd) == -1)
+    if (pipe(fd) == -1) // Create a pipe between parent and child process(logger)
     {
         perror("pipe()");
         exit(EXIT_FAILURE);
     }
 
-    /**********************
-     * Fork a child process
-     **********************/
     fflush(NULL); // Flush all open streams
     pid = fork();
     if (pid < 0)
@@ -68,7 +86,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
     else if (pid == 0)
-    { // child process
+    { // The log process is started (with fork) as a child process of the main process.
         close(fd[WRITE_END]);
         while (read(fd[READ_END], log_msg, SIZE) > 0)
         {
@@ -83,33 +101,6 @@ int main(int argc, char *argv[])
         close(fd[READ_END]);
         strcpy(log_msg, "Gateway started");
         write(fd[WRITE_END], log_msg, strlen(log_msg) + 1);
-
-        /********************************************
-         * Create a thread for the connection manager
-         ********************************************/
-        if (pthread_create(&tid_connmgr, NULL, connmgr, &port) != 0)
-        {
-            perror("pthread_create()");
-            exit(EXIT_FAILURE);
-        }
-
-        /*****************************************
-         * Create a thread for the storage manager
-         *****************************************/
-        if (pthread_create(&tid_storagemgr, NULL, storagemgr, NULL) != 0)
-        {
-            perror("pthread_create()");
-            exit(EXIT_FAILURE);
-        }
-
-        // /**************************************
-        //  * Create a thread for the data manager
-        //  **************************************/
-        // if (pthread_create(&tid_datamgr, NULL, datamgr, NULL) != 0)
-        // {
-        //     perror("pthread_create()");
-        //     exit(EXIT_FAILURE);
-        // }
 
         close(fd[WRITE_END]);
 

@@ -15,6 +15,10 @@
 #ifndef CONNMGR_H_
 #define CONNMGR_H_
 
+#ifndef TIMEOUT
+#error TIMEOUT not set
+#endif
+
 #define MAX_CONN 3 // state the max. number of connections the server will handle before exiting
 
 extern char log_msg[SIZE]; // Message to be received from the child process
@@ -23,7 +27,8 @@ extern int fd[2];          // File descriptor for the pipe
 extern sbuffer_t *sbuffer;
 
 /**
- * \brief This function is used to handle the connection with the client
+ * \brief The connection manager listens on a TCP socket for incoming connection requests
+from new sensor nodes.
  * \param port The port number
  */
 void *connmgr(void *port);

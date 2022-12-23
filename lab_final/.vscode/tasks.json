@@ -17,7 +17,7 @@
 				"${workspaceFolder}/lib/dplist.c",
 				"-o",
 				"${workspaceFolder}/build/out.exe",
-				"-Werror",
+				"-Werror"
 			],
 			"options": {
 				"cwd": "${fileDirname}"
