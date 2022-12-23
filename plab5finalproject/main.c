@@ -23,8 +23,8 @@ void append_log(char *msg);
 
 int seq = 0; // Sequence number of the log file
 
-int fd[2];       // File descriptor for the pipe
-char rmsg[SIZE]; // Message to be received from the child process
+int fd[2];          // File descriptor for the pipe
+char log_msg[SIZE]; // Message to be received from the child process
 
 sbuffer_t *sbuffer = NULL; // Shared buffer
 
@@ -57,21 +57,6 @@ int main(int argc, char *argv[])
 
     sbuffer_init(&sbuffer); // Initialize the shared buffer
 
-    /*******************
-     * Create a log file
-     *******************/
-    if (access("gateway.log", F_OK) == -1)
-    {
-        FILE *fp;
-        fp = fopen("gateway.log", "w");
-        if (fp == NULL)
-        {
-            perror("fopen()");
-            exit(1);
-        }
-        fclose(fp);
-    }
-
     /********************************************************
      * Create a pipe between parent and child process(logger)
      ********************************************************/
@@ -95,9 +80,9 @@ int main(int argc, char *argv[])
     else if (pid == 0)
     { // child process
         close(fd[WRITE_END]);
-        while (read(fd[READ_END], rmsg, SIZE) > 0)
+        while (read(fd[READ_END], log_msg, SIZE) > 0)
         {
-            append_log(rmsg);
+            append_log(log_msg);
         }
         close(fd[READ_END]);
 
@@ -106,8 +91,8 @@ int main(int argc, char *argv[])
     else
     { // parent process
         close(fd[READ_END]);
-        strcpy(rmsg, "Gateway started");
-        write(fd[WRITE_END], rmsg, strlen(rmsg) + 1);
+        strcpy(log_msg, "Gateway started");
+        write(fd[WRITE_END], log_msg, strlen(log_msg) + 1);
 
         /********************************************
          * Create a thread for the connection manager

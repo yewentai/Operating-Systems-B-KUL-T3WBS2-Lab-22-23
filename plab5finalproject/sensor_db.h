@@ -19,8 +19,8 @@
 #include "sbuffer.h"
 
 extern sbuffer_t *sbuffer;
-extern int fd[2];       // pipe file descriptor
-extern char rmsg[SIZE]; // Message to be received from the child process
+extern int fd[2];          // pipe file descriptor
+extern char log_msg[SIZE]; // Message to be received from the child process
 
 void *storagemgr();
 

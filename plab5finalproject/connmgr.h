@@ -15,9 +15,9 @@
 #include "sbuffer.h"
 #include "lib/tcpsock.h"
 
-extern char rmsg[SIZE]; // Message to be received from the child process
-extern int seq;         // Sequence number of the log file
-extern int fd[2];       // File descriptor for the pipe
+extern char log_msg[SIZE]; // Message to be received from the child process
+extern int seq;            // Sequence number of the log file
+extern int fd[2];          // File descriptor for the pipe
 
 extern sbuffer_t *sbuffer;
 
