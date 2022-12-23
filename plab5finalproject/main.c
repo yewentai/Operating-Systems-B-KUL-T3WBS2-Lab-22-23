@@ -14,8 +14,8 @@
 #include "lib/tcpsock.h"
 
 int seq = 0;               // Sequence number of the log file
+int num_conn = 0;          // Number of connections
 int fd[2];                 // File descriptor for the pipe
-char log_msg[SIZE];        // Message to be received from the child process
 sbuffer_t *sbuffer = NULL; // Shared buffer
 
 void append_log(char *msg);
@@ -49,6 +49,11 @@ int main(int argc, char *argv[])
     }
     fclose(fp);
 
+    /**********************************************************************
+     *A shared data structure is used for communication between all threads.
+     ***********************************************************************/
+    sbuffer_init(&sbuffer); // Initialize the shared buffer
+
     /************************************************************************
      * The main process runs three threads at startup: the connection manager,
      * the datamanager, and the storage manager thread.
@@ -59,21 +64,17 @@ int main(int argc, char *argv[])
         perror("pthread_create()");
         exit(EXIT_FAILURE);
     }
-    if (pthread_create(&tid_storagemgr, NULL, storagemgr, NULL) != 0)
-    {
-        perror("pthread_create()");
-        exit(EXIT_FAILURE);
-    }
+
+    // if (pthread_create(&tid_storagemgr, NULL, storagemgr, NULL) != 0)
+    // {
+    //     perror("pthread_create()");
+    //     exit(EXIT_FAILURE);
+    // }
     // if (pthread_create(&tid_datamgr, NULL, datamgr, NULL) != 0)
     // {
     //     perror("pthread_create()");
     //     exit(EXIT_FAILURE);
     // }
-
-    /**********************************************************************
-     *A shared data structure is used for communication between all threads.
-     ***********************************************************************/
-    sbuffer_init(&sbuffer); // Initialize the shared buffer
 
     /****************************************************************************************
      * The sensor gateway consists of a main process and a log process.
@@ -97,27 +98,42 @@ int main(int argc, char *argv[])
     else if (pid == 0)
     { // The log process is started (with fork) as a child process of the main process.
         close(fd[WRITE_END]);
+        static char log_msg[SIZE]; // Message to be received from the child process
         while (read(fd[READ_END], log_msg, SIZE) > 0)
         {
             append_log(log_msg);
         }
         close(fd[READ_END]);
-
         exit(EXIT_SUCCESS);
     }
     else
     { // parent process
         close(fd[READ_END]);
 
-        close(fd[WRITE_END]);
+        time_t tik;
+        time(&tik);
+        while (1)
+        {
+            if (num_conn != 0)
+            {
+                time(&tik);
+            }
+            if (time(NULL) - tik > TIMEOUT && num_conn == 0)
+            {
+                pthread_cancel(tid_connmgr);
+                pthread_join(tid_connmgr, NULL);
+                close(fd[WRITE_END]);
+                wait(NULL);
+                exit(EXIT_SUCCESS);
+            }
+        }
 
+        pthread_join(tid_connmgr, NULL);
+        // pthread_join(tid_storagemgr, NULL);
+        // pthread_join(tid_datamgr, NULL);
+        close(fd[WRITE_END]);
         wait(NULL);
     }
-
-    pthread_join(tid_connmgr, NULL);
-    pthread_join(tid_storagemgr, NULL);
-    // pthread_join(tid_datamgr, NULL);
-
     exit(EXIT_SUCCESS);
 }
 

@@ -5,10 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch",
+            "name": "Run_Server",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/out",
+            "program": "${workspaceFolder}/server",
             "args": [
                 "5678"
             ],
@@ -38,7 +38,7 @@
             "name": "Attach",
             "type": "cppdbg",
             "request": "attach",
-            "program": "${workspaceFolder}/build/out",
+            "program": "${workspaceFolder}/server",
             "processId": "${command:pickProcess}",
             "MIMode": "gdb",
             "setupCommands": [

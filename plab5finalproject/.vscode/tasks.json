@@ -3,7 +3,7 @@
 	"tasks": [
 		{
 			"type": "cppbuild",
-			"label": "Sensor_Monitoring_System",
+			"label": "Server",
 			"command": "/usr/bin/gcc",
 			"args": [
 				"-fdiagnostics-color=always",
@@ -16,7 +16,7 @@
 				"${workspaceFolder}/lib/tcpsock.c",
 				"${workspaceFolder}/lib/dplist.c",
 				"-o",
-				"${workspaceFolder}/build/out",
+				"${workspaceFolder}/server",
 				"-DSET_MIN_TEMP=10",
 				"-DSET_MAX_TEMP=20",
 				"-DTIMEOUT=5",

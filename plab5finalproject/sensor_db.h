@@ -19,8 +19,7 @@
 #include "sbuffer.h"
 
 extern sbuffer_t *sbuffer;
-extern int fd[2];          // pipe file descriptor
-extern char log_msg[SIZE]; // Message to be received from the child process
+extern int fd[2]; // pipe file descriptor
 
 /**
  * The storage manager thread reads sensor measurements from the shared data buffer

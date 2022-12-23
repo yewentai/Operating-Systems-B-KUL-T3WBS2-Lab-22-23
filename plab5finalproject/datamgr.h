@@ -26,10 +26,6 @@
 static dplist_t *list = NULL; // Pointer to the list
 extern char rmsg[SIZE];       // Message to be received from the child process
 
-static void *element_copy(void *element);
-static void element_free(void **element);
-static int element_compare(void *x, void *y);
-
 /*
  * Use ERROR_HANDLER() for handling memory allocation problems, invalid sensor IDs, non-existing files, etc.
  */
@@ -86,5 +82,11 @@ time_t datamgr_get_last_modified(sensor_id_t sensor_id);
  *  \return the total amount of sensors
  */
 int datamgr_get_total_sensors();
+
+static void *element_copy(void *element);
+
+static void element_free(void **element);
+
+static int element_compare(void *x, void *y);
 
 #endif // DATAMGR_H_

@@ -2,6 +2,7 @@
 
 void *storagemgr()
 {
+    static char log_msg[SIZE];                     // Message to be received from the child process
     FILE *csv = open_db("sensor_data.csv", false); // A new, empty data.csv should be created when the server starts up. It should not be deleted when the server stops.
     strcpy(log_msg, "A new data.csv file has been created.");
     write(fd[WRITE_END], log_msg, SIZE);
@@ -43,6 +44,7 @@ void insert_sensor(FILE *csv, sensor_data_t *data)
     }
 
     char time_buffer[128];
+    static char log_msg[SIZE]; // Message to be received from the child process
     strftime(time_buffer, sizeof(time_buffer), "%d/%m/%Y %H:%M:%S", localtime(&data->ts));
     fprintf(csv, "%s,%" PRIu16 ",%.1lf\n", time_buffer, data->id, data->value);
 
@@ -58,6 +60,7 @@ int close_db(FILE *csv)
         exit(EXIT_FAILURE);
     }
     fclose(csv);
+    static char log_msg[SIZE]; // Message to be received from the child process
     strcpy(log_msg, "Successfully closed the sensor_date file");
     write(fd[WRITE_END], log_msg, SIZE);
     exit(EXIT_SUCCESS);
