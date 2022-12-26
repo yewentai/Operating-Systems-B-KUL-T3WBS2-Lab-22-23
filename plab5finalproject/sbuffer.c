@@ -33,7 +33,7 @@ int sbuffer_init(sbuffer_t **buffer)
     (*buffer)->tail = NULL;
     pthread_mutex_init(&((*buffer)->lock), NULL);
     pthread_cond_init(&((*buffer)->cond_signal), NULL);
-    pthread_mutex_lock(&((*buffer)->lock));
+    // pthread_mutex_lock(&((*buffer)->lock));
     // pthread_cond_wait(&((*buffer)->cond_signal), &((*buffer)->lock));
     return SBUFFER_SUCCESS;
 }

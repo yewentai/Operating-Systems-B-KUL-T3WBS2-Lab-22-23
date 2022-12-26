@@ -65,6 +65,7 @@ int main(int argc, char *argv[])
         perror("pthread_create()");
         exit(EXIT_FAILURE);
     }
+    sleep(1); // Wait for the connection manager to start
 
     // if (pthread_create(&tid_storagemgr, NULL, storagemgr, NULL) != 0)
     // {
