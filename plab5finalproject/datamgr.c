@@ -2,32 +2,28 @@
 
 void *datamgr()
 {
-}
-
-void datamgr_free()
-{
-    dpl_free(&list, true);
-}
-
-uint16_t datamgr_get_room_id(sensor_id_t sensor_id)
-{
+    /******************************************************
+    ** open "room_sensor.map" and get the lines of the file
+    *******************************************************/
     FILE *fp = fopen("room_sensor.map", "r");
-    if (fp == NULL)
-    {
-        perror("fopen()");
-        exit(EXIT_FAILURE);
-    }
     int m = 0;
     int n = 2;
     char mid;
     while (!feof(fp))
     {
         mid = fgetc(fp); // get the character
-        if (mid == '\n') // if the character is a new line
+        if (mid == '\n') // if the character is map new line
             m++;         // increase the line count
     }
-    rewind(fp);    // set the file pointer to the beginning of the file
-    int map[m][n]; // create a 2D array with the size of the file
+    rewind(fp); // set the file pointer to the beginning of the file
+
+    /***************************************
+    ** allocate the memory for the map array
+    ****************************************/
+    int **map;
+    map = (int **)malloc(sizeof(int *) * m);
+    for (int i = 0; i < m; i++)
+        map[i] = (int *)malloc(sizeof(int) * n);
     for (int i = 0; i < m; i++)
     {
         for (int j = 0; j < n; j++)
@@ -36,6 +32,31 @@ uint16_t datamgr_get_room_id(sensor_id_t sensor_id)
         }
     }
     fclose(fp);
+    // check the map array
+    puts("The map is:");
+    for (int i = 0; i < m; i++)
+    {
+        for (int j = 0; j < n; j++)
+        {
+            printf("%d ", map[i][j]);
+        }
+        printf("\n");
+    }
+
+    dplist_t list = dpl_create(element_copy, element_free, element_compare);
+    my_element_t *element = malloc(sizeof(my_element_t));
+
+    uint16_t room_id = datamgr_get_room_id(15, map, m);
+}
+
+void datamgr_free()
+{
+    dpl_free(&list, true);
+}
+
+uint16_t datamgr_get_room_id(sensor_id_t sensor_id, int **map, int m)
+{
+
     for (int i = 0; i < m; i++)
     {
         if (map[i][1] == sensor_id)

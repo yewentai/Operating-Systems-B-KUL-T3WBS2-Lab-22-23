@@ -47,6 +47,13 @@ extern char rmsg[SIZE];       // Message to be received from the child process
 void *datamgr();
 
 /**
+ * This method should be called to initialize the datamgr, and to read the room-sensor mapping from the file room_sensor.map
+ * Use ERROR_HANDLER() if the file cannot be opened
+ * \return a pointer to the list
+ */
+int **get_map_array();
+
+/**
  * This method should be called to clean up the datamgr, and to free all used memory.
  * After this, any call to datamgr_get_room_id, datamgr_get_avg, datamgr_get_last_modified or datamgr_get_total_sensors will not return a valid result
  */
@@ -58,7 +65,7 @@ void datamgr_free();
  * \param sensor_id the sensor id to look for
  * \return the corresponding room id
  */
-uint16_t datamgr_get_room_id(sensor_id_t sensor_id);
+uint16_t datamgr_get_room_id(sensor_id_t sensor_id, int **map, int m);
 
 /**
  * Gets the running AVG of a certain senor ID (if less then RUN_AVG_LENGTH measurements are recorded the avg is 0)

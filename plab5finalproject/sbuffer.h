@@ -41,6 +41,15 @@ int sbuffer_free(sbuffer_t **buffer);
 int sbuffer_remove(sbuffer_t *buffer, sensor_data_t *data);
 
 /**
+ * Gets the first sensor data in 'buffer' (at the 'head') and returns this sensor data as '*data'
+ * If 'buffer' is empty, the function blocks until new sensor data becomes available
+ * \param buffer a pointer to the buffer that is used
+ * \param data a pointer to pre-allocated sensor_data_t space, the data will be copied into this structure. No new memory is allocated for 'data' in this function.
+ * \return SBUFFER_SUCCESS on success and SBUFFER_FAILURE if an error occurred
+ */
+int sbuffer_get_head(sbuffer_t *buffer, sensor_data_t *data);
+
+/**
  * Inserts the sensor data in 'data' at the end of 'buffer' (at the 'tail')
  * \param buffer a pointer to the buffer that is used
  * \param data a pointer to sensor_data_t data, that will be copied into the buffer
