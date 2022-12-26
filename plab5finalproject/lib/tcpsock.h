@@ -1,7 +1,7 @@
 /**
  * \author Luc Vandeurzen
  */
-
+#define _GNU_SOURCE
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -13,7 +13,6 @@
 #ifndef __TCPSOCK_H__
 #define __TCPSOCK_H__
 
-#define _GNU_SOURCE
 #define MIN_PORT 1024
 #define MAX_PORT 65536
 #define TCP_NO_ERROR 0

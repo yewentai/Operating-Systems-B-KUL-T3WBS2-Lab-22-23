@@ -43,7 +43,7 @@ void *datamgr()
         printf("\n");
     }
 
-    list = dpl_create(element_copy, element_free, element_compare);
+    dplist_t list = dpl_create(element_copy, element_free, element_compare);
     my_element_t *element = malloc(sizeof(my_element_t));
     sensor_data_t *data = malloc(sizeof(sensor_data_t));
     while (sbuffer_remove(sbuffer, data) == SBUFFER_SUCCESS)

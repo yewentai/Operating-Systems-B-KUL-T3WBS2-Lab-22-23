@@ -34,6 +34,7 @@ void *connmgr(void *port_void)
                 pthread_join(tid[i], NULL);
 
         puts("connection manager is shutting down");
+        return NULL;
 }
 
 void *connmgr_listen(void *p)

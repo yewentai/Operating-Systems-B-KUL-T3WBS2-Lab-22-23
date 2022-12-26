@@ -22,10 +22,8 @@
 #endif
 
 #define RUN_AVG_LENGTH 5
-
-static dplist_t *list = NULL; // Pointer to the list
-extern sbuffer_t *sbuffer;    // Pointer to the shared buffer
-extern char rmsg[SIZE];       // Message to be received from the child process
+extern sbuffer_t *sbuffer; // Pointer to the shared buffer
+extern char rmsg[SIZE];    // Message to be received from the child process
 
 /*
  * Use ERROR_HANDLER() for handling memory allocation problems, invalid sensor IDs, non-existing files, etc.
@@ -90,10 +88,10 @@ time_t datamgr_get_last_modified(sensor_id_t sensor_id);
  */
 int datamgr_get_total_sensors();
 
-static void *element_copy(void *element);
+void *element_copy(void *element);
 
-static void element_free(void **element);
+void element_free(void **element);
 
-static int element_compare(void *x, void *y);
+int element_compare(void *x, void *y);
 
 #endif // DATAMGR_H_
