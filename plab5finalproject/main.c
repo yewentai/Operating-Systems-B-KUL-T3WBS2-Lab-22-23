@@ -67,11 +67,11 @@ int main(int argc, char *argv[])
     }
     sleep(1); // Wait for the connection manager to start
 
-    // if (pthread_create(&tid_storagemgr, NULL, storagemgr, NULL) != 0)
-    // {
-    //     perror("pthread_create()");
-    //     exit(EXIT_FAILURE);
-    // }
+    if (pthread_create(&tid_storagemgr, NULL, storagemgr, NULL) != 0)
+    {
+        perror("pthread_create()");
+        exit(EXIT_FAILURE);
+    }
 
     // if (pthread_create(&tid_datamgr, NULL, datamgr, NULL) != 0)
     // {
