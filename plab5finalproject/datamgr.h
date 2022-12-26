@@ -24,6 +24,7 @@
 #define RUN_AVG_LENGTH 5
 
 static dplist_t *list = NULL; // Pointer to the list
+extern sbuffer_t *sbuffer;    // Pointer to the shared buffer
 extern char rmsg[SIZE];       // Message to be received from the child process
 
 /*

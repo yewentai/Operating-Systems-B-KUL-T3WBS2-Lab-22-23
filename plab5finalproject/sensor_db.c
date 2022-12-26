@@ -9,7 +9,7 @@ void *storagemgr()
     write(fd[WRITE_END], log_msg, SIZE);
 
     sensor_data_t *data = malloc(sizeof(sensor_data_t));
-    while (sbuffer_get_head(sbuffer, data) != SBUFFER_FAILURE)
+    while (sbuffer_get_head(sbuffer, data) == SBUFFER_SUCCESS)
     {
         insert_sensor(csv, data);
         sleep(1);

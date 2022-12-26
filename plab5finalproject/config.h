@@ -28,6 +28,7 @@ typedef struct
 {
     sensor_id_t sensor_id;
     sensor_room_t room_id;
+    sensor_value_t value;
     sensor_value_t avg;
     sensor_ts_t last_modified;
 } my_element_t;
