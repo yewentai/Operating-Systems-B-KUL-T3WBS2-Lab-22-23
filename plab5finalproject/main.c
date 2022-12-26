@@ -11,6 +11,7 @@
 #include "connmgr.h"
 #include "datamgr.h"
 #include "sensor_db.h"
+#include "sbuffer.h"
 #include "lib/tcpsock.h"
 
 int seq = 0;               // Sequence number of the log file
@@ -65,11 +66,11 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    if (pthread_create(&tid_storagemgr, NULL, storagemgr, NULL) != 0)
-    {
-        perror("pthread_create()");
-        exit(EXIT_FAILURE);
-    }
+    // if (pthread_create(&tid_storagemgr, NULL, storagemgr, NULL) != 0)
+    // {
+    //     perror("pthread_create()");
+    //     exit(EXIT_FAILURE);
+    // }
 
     // if (pthread_create(&tid_datamgr, NULL, datamgr, NULL) != 0)
     // {
@@ -130,7 +131,7 @@ int main(int argc, char *argv[])
         }
 
         // pthread_join(tid_connmgr, NULL);
-        pthread_join(tid_storagemgr, NULL);
+        // pthread_join(tid_storagemgr, NULL);
         // pthread_join(tid_datamgr, NULL);
         close(fd[WRITE_END]);
         wait(NULL);

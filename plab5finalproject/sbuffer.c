@@ -33,6 +33,8 @@ int sbuffer_init(sbuffer_t **buffer)
     (*buffer)->tail = NULL;
     pthread_mutex_init(&((*buffer)->lock), NULL);
     pthread_cond_init(&((*buffer)->cond_signal), NULL);
+    pthread_mutex_lock(&((*buffer)->lock));
+    // pthread_cond_wait(&((*buffer)->cond_signal), &((*buffer)->lock));
     return SBUFFER_SUCCESS;
 }
 
@@ -85,6 +87,8 @@ int sbuffer_insert(sbuffer_t *buffer, sensor_data_t *data)
         return SBUFFER_FAILURE;
     dummy->data = *data;
     dummy->next = NULL;
+
+    pthread_mutex_lock(&(buffer->lock));
     if (buffer->tail == NULL) // buffer empty (buffer->head should also be NULL
     {
         buffer->head = buffer->tail = dummy;
@@ -94,5 +98,6 @@ int sbuffer_insert(sbuffer_t *buffer, sensor_data_t *data)
         buffer->tail->next = dummy;
         buffer->tail = buffer->tail->next;
     }
+    pthread_cond_broadcast(&(buffer->cond_signal));
     return SBUFFER_SUCCESS;
 }
