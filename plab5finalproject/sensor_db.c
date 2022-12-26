@@ -20,6 +20,7 @@ void *storagemgr()
     write(fd[WRITE_END], log_msg, SIZE);
 
     free(data);
+    return NULL;
 }
 
 FILE *open_db(char *filename, bool append)

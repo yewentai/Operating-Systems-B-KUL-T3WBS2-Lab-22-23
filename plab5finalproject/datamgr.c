@@ -42,7 +42,7 @@ void *datamgr()
         }
         printf("\n");
     }
-
+    dplist_t *list = NULL;
     list = dpl_create(element_copy, element_free, element_compare);
     my_element_t *element = malloc(sizeof(my_element_t));
     sensor_data_t *data = malloc(sizeof(sensor_data_t));
@@ -51,7 +51,7 @@ void *datamgr()
         element->sensor_id = data->id;
         element->room_id = datamgr_get_room_id(data->id, map, m);
         element->value = data->value;
-        element->avg = datamgr_get_avg(data->id);
+        element->avg = datamgr_get_avg(data->id, list);
         element->last_modified = data->ts;
         dpl_insert_at_index(list, element, 0, true);
         if (element->avg > SET_MAX_TEMP)
@@ -64,10 +64,11 @@ void *datamgr()
         }
     }
     free(element);
-    datamgr_free();
+    datamgr_free(list);
+    return NULL;
 }
 
-void datamgr_free()
+void datamgr_free(dplist_t *list)
 {
     dpl_free(&list, true);
 }
@@ -85,7 +86,7 @@ uint16_t datamgr_get_room_id(sensor_id_t sensor_id, int **map, int m)
     return 0;
 }
 
-sensor_value_t datamgr_get_avg(sensor_id_t sensor_id)
+sensor_value_t datamgr_get_avg(sensor_id_t sensor_id, dplist_t *list)
 {
     sensor_value_t avg = 0;
     int count = 0;
@@ -106,7 +107,7 @@ sensor_value_t datamgr_get_avg(sensor_id_t sensor_id)
     return avg / count;
 }
 
-time_t datamgr_get_last_modified(sensor_id_t sensor_id)
+time_t datamgr_get_last_modified(sensor_id_t sensor_id, dplist_t *list)
 {
     time_t last_modified = 0;
     for (int i = 0; i < dpl_size(list); i++)
@@ -122,7 +123,7 @@ time_t datamgr_get_last_modified(sensor_id_t sensor_id)
     return last_modified;
 }
 
-int datamgr_get_total_sensors()
+int datamgr_get_total_sensors(dplist_t *list)
 {
     int count = 0;
     for (int i = 0; i < dpl_size(list); i++)

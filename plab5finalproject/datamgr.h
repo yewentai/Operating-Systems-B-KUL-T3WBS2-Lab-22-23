@@ -56,7 +56,7 @@ int **get_map_array();
  * This method should be called to clean up the datamgr, and to free all used memory.
  * After this, any call to datamgr_get_room_id, datamgr_get_avg, datamgr_get_last_modified or datamgr_get_total_sensors will not return a valid result
  */
-void datamgr_free();
+void datamgr_free(dplist_t *list);
 
 /**
  * Gets the room ID for a certain sensor ID
@@ -72,7 +72,7 @@ uint16_t datamgr_get_room_id(sensor_id_t sensor_id, int **map, int m);
  * \param sensor_id the sensor id to look for
  * \return the running AVG of the given sensor
  */
-sensor_value_t datamgr_get_avg(sensor_id_t sensor_id);
+sensor_value_t datamgr_get_avg(sensor_id_t sensor_id, dplist_t *list);
 
 /**
  * Returns the time of the last reading for a certain sensor ID
@@ -80,13 +80,13 @@ sensor_value_t datamgr_get_avg(sensor_id_t sensor_id);
  * \param sensor_id the sensor id to look for
  * \return the last modified timestamp for the given sensor
  */
-time_t datamgr_get_last_modified(sensor_id_t sensor_id);
+time_t datamgr_get_last_modified(sensor_id_t sensor_id, dplist_t *list);
 
 /**
  *  Return the total amount of unique sensor ID's recorded by the datamgr
  *  \return the total amount of sensors
  */
-int datamgr_get_total_sensors();
+int datamgr_get_total_sensors(dplist_t *list);
 
 void *element_copy(void *element);
 
