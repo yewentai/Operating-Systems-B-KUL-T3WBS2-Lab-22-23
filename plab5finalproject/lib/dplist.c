@@ -52,7 +52,7 @@ dplist_t *dpl_create( // callback functions
     void (*element_free)(void **element),
     int (*element_compare)(void *x, void *y))
 {
-    dplist_t *list;
+    static dplist_t *list;
     list = malloc(sizeof(struct dplist));
     DPLIST_ERR_HANDLER(list == NULL, DPLIST_MEMORY_ERROR);
     list->head = NULL;

@@ -11,7 +11,8 @@
         "string.h": "c",
         "errno.h": "c",
         "config.h": "c",
-        "dplist.h": "c"
+        "dplist.h": "c",
+        "datamgr.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }
