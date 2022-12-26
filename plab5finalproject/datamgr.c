@@ -1,17 +1,7 @@
 #include "datamgr.h"
 
-void datamgr(FILE *fp_sensor_map)
+void *datamgr()
 {
-    char *line = NULL;
-    size_t len = 0;
-    ssize_t read;
-    while ((read = getline(&line, &len, fp_sensor_map)) != -1)
-    {
-        char *token = strtok(line, ",");
-        sensor_id_t sensor_id = atoi(token);
-        token = strtok(NULL, ",");
-    }
-    free(line);
 }
 
 void datamgr_free()
@@ -71,10 +61,6 @@ sensor_value_t datamgr_get_avg(sensor_id_t sensor_id)
             avg += ((my_element_t *)dpl_get_element_at_index(list, i))->avg;
             count++;
         }
-    }
-    if (count == 0)
-    {
-        return 0;
     }
     return avg / count;
 }

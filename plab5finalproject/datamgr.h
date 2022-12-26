@@ -43,9 +43,8 @@ extern char rmsg[SIZE];       // Message to be received from the child process
  * The data manager thread implements the server intelligence as defined in plab1.
  * The room-sensor mapping is read from a text file “room_sensor.map”.
  * The data manager reads sensor measurements from the shared in-memory data buffer.
- *  \param fp_sensor_map file pointer to the map file
  */
-void datamgr(FILE *fp_sensor_map);
+void *datamgr();
 
 /**
  * This method should be called to clean up the datamgr, and to free all used memory.

@@ -73,11 +73,11 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    // if (pthread_create(&tid_datamgr, NULL, datamgr, NULL) != 0)
-    // {
-    //     perror("pthread_create()");
-    //     exit(EXIT_FAILURE);
-    // }
+    if (pthread_create(&tid_datamgr, NULL, datamgr, NULL) != 0)
+    {
+        perror("pthread_create()");
+        exit(EXIT_FAILURE);
+    }
 
     /****************************************************************************************
      * The sensor gateway consists of a main process and a log process.
@@ -125,15 +125,12 @@ int main(int argc, char *argv[])
             {
                 pthread_cancel(tid_connmgr);
                 pthread_join(tid_connmgr, NULL);
-                close(fd[WRITE_END]);
-                wait(NULL);
-                exit(EXIT_SUCCESS);
+                break;
             }
         }
 
-        // pthread_join(tid_connmgr, NULL);
-        // pthread_join(tid_storagemgr, NULL);
-        // pthread_join(tid_datamgr, NULL);
+        pthread_join(tid_storagemgr, NULL);
+        pthread_join(tid_datamgr, NULL);
         close(fd[WRITE_END]);
         wait(NULL);
     }
