@@ -62,9 +62,7 @@ void *connmgr_listen(void *p)
 
                 puts("Sensor node has opened a new connection!");
 
-                pthread_mutex_lock(&mutex);
                 sbuffer_insert(sbuffer, &data);
-                pthread_mutex_unlock(&mutex);
         }
 
         while (result == TCP_NO_ERROR)
@@ -82,9 +80,7 @@ void *connmgr_listen(void *p)
 
                 if (result == TCP_NO_ERROR)
                 {
-                        pthread_mutex_lock(&mutex);
                         sbuffer_insert(sbuffer, &data);
-                        pthread_mutex_unlock(&mutex);
                 }
         };
 

@@ -87,7 +87,6 @@ int sbuffer_insert(sbuffer_t *buffer, sensor_data_t *data)
         return SBUFFER_FAILURE;
     dummy->data = *data;
     dummy->next = NULL;
-
     pthread_mutex_lock(&(buffer->lock));
     if (buffer->tail == NULL) // buffer empty (buffer->head should also be NULL
     {
@@ -98,6 +97,6 @@ int sbuffer_insert(sbuffer_t *buffer, sensor_data_t *data)
         buffer->tail->next = dummy;
         buffer->tail = buffer->tail->next;
     }
-    pthread_cond_broadcast(&(buffer->cond_signal));
+    pthread_mutex_unlock(&(buffer->lock));
     return SBUFFER_SUCCESS;
 }
