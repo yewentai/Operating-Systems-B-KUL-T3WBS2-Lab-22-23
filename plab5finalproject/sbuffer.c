@@ -18,8 +18,10 @@ struct sbuffer_node
  */
 struct sbuffer
 {
-    sbuffer_node_t *head; /**< a pointer to the first node in the buffer */
-    sbuffer_node_t *tail; /**< a pointer to the last node in the buffer */
+    sbuffer_node_t *head;       /**< a pointer to the first node in the buffer */
+    sbuffer_node_t *tail;       /**< a pointer to the last node in the buffer */
+    pthread_mutex_t lock;       /**< a lock for the buffer */
+    pthread_cond_t cond_signal; /**< a condition variable for the buffer */
 };
 
 int sbuffer_init(sbuffer_t **buffer)
@@ -29,6 +31,8 @@ int sbuffer_init(sbuffer_t **buffer)
         return SBUFFER_FAILURE;
     (*buffer)->head = NULL;
     (*buffer)->tail = NULL;
+    pthread_mutex_init(&((*buffer)->lock), NULL);
+    pthread_cond_init(&((*buffer)->cond_signal), NULL);
     return SBUFFER_SUCCESS;
 }
 

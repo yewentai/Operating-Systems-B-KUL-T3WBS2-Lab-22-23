@@ -7,7 +7,9 @@
         "tcpsock.h": "c",
         "logger.h": "c",
         "sbuffer.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "string.h": "c",
+        "errno.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }
