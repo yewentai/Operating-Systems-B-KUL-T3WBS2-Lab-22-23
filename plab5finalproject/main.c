@@ -114,28 +114,6 @@ int main(int argc, char *argv[])
     else
     { // parent process
         close(fd[READ_END]);
-
-        /**************************************************************************
-         * Set a timeout for the server to run.
-         * If there is no connection for TIMEOUT seconds, the server will shut down.
-         ***************************************************************************/
-        time_t tik;
-        time(&tik);
-        while (1)
-        {
-            if (num_conn != 0)
-            {
-                time(&tik);
-            }
-            if (time(NULL) - tik > TIMEOUT && num_conn == 0)
-            {
-                pthread_cancel(tid_connmgr);
-                pthread_cancel(tid_storagemgr);
-                pthread_cancel(tid_datamgr);
-                break;
-            }
-        }
-
         pthread_join(tid_connmgr, NULL);
         pthread_join(tid_storagemgr, NULL);
         pthread_join(tid_datamgr, NULL);

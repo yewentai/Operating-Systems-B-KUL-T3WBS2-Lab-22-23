@@ -8,9 +8,10 @@ static char log_msg[SIZE]; // Message to be received from the child process
 
 void *datamgr()
 {
-    /******************************************************
-    ** open "room_sensor.map" and get the lines of the file
-    *******************************************************/
+    /*********************************************************************
+     * Create a two-dimensional array to store the room_sensor information
+     *********************************************************************/
+    // open "room_sensor.map" and get the lines of the file
     FILE *fp = fopen("room_sensor.map", "r");
     int m = 0;
     int n = 2;
@@ -22,14 +23,12 @@ void *datamgr()
             m++;         // increase the line count
     }
     rewind(fp); // set the file pointer to the beginning of the file
-
-    /***************************************
-    ** allocate the memory for the map array
-    ****************************************/
+    // allocate the memory for the map array
     int **map;
     map = (int **)malloc(sizeof(int *) * m);
     for (int i = 0; i < m; i++)
         map[i] = (int *)malloc(sizeof(int) * n);
+    // read the data from the file
     for (int i = 0; i < m; i++)
     {
         for (int j = 0; j < n; j++)
@@ -38,22 +37,17 @@ void *datamgr()
         }
     }
     fclose(fp);
-    // check the map array
-    puts("The map is:");
-    for (int i = 0; i < m; i++)
-    {
-        for (int j = 0; j < n; j++)
-        {
-            printf("%d ", map[i][j]);
-        }
-        printf("\n");
-    }
+
+    /*********************************
+     * insert the data into the dplist
+     * *******************************/
     dplist_t *list = NULL;
     list = dpl_create(element_copy, element_free, element_compare);
     my_element_t *element = malloc(sizeof(my_element_t));
     sensor_data_t *data = malloc(sizeof(sensor_data_t));
     while (sbuffer_remove(sbuffer, data) == SBUFFER_SUCCESS)
     {
+        // add the new data to the dplist
         element->sensor_id = data->id;
         element->room_id = datamgr_get_room_id(data->id, map, m);
         element->value = data->value;
@@ -61,6 +55,10 @@ void *datamgr()
         element->last_modified = data->ts;
         dpl_insert_at_index(list, element, 0, true);
 
+        /*******************************************************
+         * check the data just inserted and write the log message
+         *******************************************************/
+        // check if the sensor node ID is valid
         bool flag_sensor_id_right = false;
         for (int i = 0; i < m; i++)
         {
@@ -75,7 +73,7 @@ void *datamgr()
             sprintf(log_msg, "Received sensor data with invalid sensor node ID %d", data->id);
             write(fd[WRITE_END], log_msg, strlen(log_msg));
         }
-
+        // check if the temperature is out of range
         if (element->avg > SET_MAX_TEMP)
         {
             sprintf(log_msg, "Sensor node %d reports it is too cold", element->room_id);
@@ -99,13 +97,10 @@ void datamgr_free(dplist_t *list)
 
 uint16_t datamgr_get_room_id(sensor_id_t sensor_id, int **map, int m)
 {
-
     for (int i = 0; i < m; i++)
     {
         if (map[i][1] == sensor_id)
-        {
             return map[i][0];
-        }
     }
     return 0;
 }
@@ -115,9 +110,7 @@ sensor_value_t datamgr_get_avg(sensor_id_t sensor_id, dplist_t *list)
     sensor_value_t avg = 0;
     int count = 0;
     if (dpl_size(list) <= 5)
-    {
         return 0;
-    }
     for (int i = 0; i < dpl_size(list); i++)
     {
         if (((my_element_t *)dpl_get_element_at_index(list, i))->sensor_id == sensor_id)
