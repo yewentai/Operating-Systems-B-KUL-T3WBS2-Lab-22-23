@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <string.h>
+#include <stdbool.h>
 #include "config.h"
 #include "lib/dplist.h"
 #include "sbuffer.h"

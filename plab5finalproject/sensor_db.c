@@ -17,12 +17,9 @@ void *storagemgr()
     while (sbuffer_get_head(sbuffer, data) == SBUFFER_SUCCESS)
     {
         insert_sensor(csv, data);
-        sleep(1);
     }
 
     close_db(csv); // Close sensor_data.csv
-    strcpy(log_msg, "The data.csv file has been closed.");
-    write(fd[WRITE_END], log_msg, SIZE);
 
     free(data);
     return NULL;
@@ -55,7 +52,6 @@ void insert_sensor(FILE *csv, sensor_data_t *data)
     strftime(time_buffer, sizeof(time_buffer), "%d/%m/%Y %H:%M:%S", localtime(&data->ts));
     fprintf(csv, "%s,%" PRIu16 ",%.1lf\n", time_buffer, data->id, data->value);
 
-    static char log_msg[SIZE]; // Message to be received from the child process
     sprintf(log_msg, "Data insertion from sensor %d succeeded.", data->id);
     write(fd[WRITE_END], log_msg, SIZE);
 }
@@ -68,10 +64,7 @@ int close_db(FILE *csv)
         exit(EXIT_FAILURE);
     }
     fclose(csv);
-
-    static char log_msg[SIZE]; // Message to be received from the child process
-    strcpy(log_msg, "Successfully closed the sensor_date file");
+    strcpy(log_msg, "The data.csv file has been closed.");
     write(fd[WRITE_END], log_msg, SIZE);
-
-    exit(EXIT_SUCCESS);
+    return 0;
 }

@@ -4,6 +4,8 @@
 
 #include "datamgr.h"
 
+static char log_msg[SIZE]; // Message to be received from the child process
+
 void *datamgr()
 {
     /******************************************************
@@ -58,13 +60,31 @@ void *datamgr()
         element->avg = datamgr_get_avg(data->id, list);
         element->last_modified = data->ts;
         dpl_insert_at_index(list, element, 0, true);
+
+        bool flag_sensor_id_right = false;
+        for (int i = 0; i < m; i++)
+        {
+            if (map[i][1] == data->id)
+            {
+                flag_sensor_id_right = true;
+                break;
+            }
+        }
+        if (flag_sensor_id_right == false)
+        {
+            sprintf(log_msg, "Received sensor data with invalid sensor node ID %d!\n", data->id);
+            write(fd[WRITE_END], log_msg, strlen(log_msg));
+        }
+
         if (element->avg > SET_MAX_TEMP)
         {
-            printf("The room %d is too hot!\n", element->room_id);
+            sprintf(log_msg, "Sensor node %d reports it’s too cold\n", element->room_id);
+            write(fd[WRITE_END], log_msg, strlen(log_msg));
         }
         else if (element->avg < SET_MIN_TEMP)
         {
-            printf("The room %d is too cold!\n", element->room_id);
+            sprintf(log_msg, "Sensor node %d reports it’s too hot\n", element->room_id);
+            write(fd[WRITE_END], log_msg, strlen(log_msg));
         }
     }
     free(element);

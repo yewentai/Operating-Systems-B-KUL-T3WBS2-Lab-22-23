@@ -26,7 +26,6 @@ void append_log(char *msg);
 
 int main(int argc, char *argv[])
 {
-
     /**************************************************************
      * The port of this TCP connection is given as a command line
      * argument at start-up of the main process, e.g. ./server 1234.
@@ -80,8 +79,8 @@ int main(int argc, char *argv[])
         perror("pthread_create()");
         exit(EXIT_FAILURE);
     }
-    sleep(1); // Wait for the connection manager and stotage manager to start
 
+    sleep(1); // Wait for the connection manager and stotage manager to start
     if (pthread_create(&tid_storagemgr, NULL, storagemgr, NULL) != 0)
     {
         perror("pthread_create()");
