@@ -1,3 +1,7 @@
+/**
+ * \author Wentai Ye
+ */
+
 #include "sensor_db.h"
 
 static char log_msg[SIZE]; // Message to be received from the child process

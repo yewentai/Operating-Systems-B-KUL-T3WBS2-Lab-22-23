@@ -1,3 +1,7 @@
+/**
+ * \author Wentai Ye
+ */
+
 #include "datamgr.h"
 
 void *datamgr()

@@ -1,7 +1,11 @@
+/**
+ * \author Wentai Ye
+ */
+
 #include "connmgr.h"
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-static char log_msg[SIZE];          // Message to be received from the child process
+static char log_msg[SIZE]; // Message to be received from the child process
 
 void *connmgr_listen(void *p)
 {
@@ -9,7 +13,6 @@ void *connmgr_listen(void *p)
         sensor_data_t data;                 // Data to be received from the child process
         int bytes = 0;                      // Number of bytes received
         int result = TCP_NO_ERROR;          // Result of the tcp_receive function
-        
 
         // read sensor ID
         bytes = sizeof(data.id);

@@ -1,3 +1,7 @@
+/**
+ * \author Wentai Ye
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -13,15 +17,16 @@
 #include "sbuffer.h"
 #include "lib/tcpsock.h"
 
-int seq = 0;               // Sequence number of the log file
 int num_conn = 0;          // Number of connections
 int fd[2];                 // File descriptor for the pipe
 sbuffer_t *sbuffer = NULL; // Shared buffer
+static int seq = 0;        // Sequence number of the log file
 
 void append_log(char *msg);
 
 int main(int argc, char *argv[])
 {
+
     /**************************************************************
      * The port of this TCP connection is given as a command line
      * argument at start-up of the main process, e.g. ./server 1234.
