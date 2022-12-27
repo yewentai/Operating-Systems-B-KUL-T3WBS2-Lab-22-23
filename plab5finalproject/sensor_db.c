@@ -20,6 +20,11 @@ void *storagemgr()
         sprintf(log_msg, "Data insertion from sensor %d succeeded.", data->id);
         write(fd[WRITE_END], log_msg, SIZE);
     }
+    else
+    {
+        sprintf(log_msg, "Data insertion from sensor %d failed.", data->id);
+        write(fd[WRITE_END], log_msg, SIZE);
+    }
     while (sbuffer_get_head(sbuffer, data) == SBUFFER_SUCCESS)
     {
         insert_sensor(csv, data);
