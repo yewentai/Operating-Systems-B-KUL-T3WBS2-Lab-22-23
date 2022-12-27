@@ -59,6 +59,17 @@ int main(int argc, char *argv[])
      ***********************************************************************/
     sbuffer_init(&sbuffer); // Initialize the shared buffer
 
+    /****************************************************************************************
+     * The sensor gateway consists of a main process and a log process.
+     * The log process receives log-events from the main process using a pipe.
+     * All threads of the server process can generate log-events and write these to the pipe.
+     ****************************************************************************************/
+    if (pipe(fd) == -1) // Create a pipe between parent and child process(logger)
+    {
+        perror("pipe()");
+        exit(EXIT_FAILURE);
+    }
+
     /************************************************************************
      * The main process runs three threads at startup: the connection manager,
      * the datamanager, and the storage manager thread.
@@ -83,18 +94,6 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    /****************************************************************************************
-     * The sensor gateway consists of a main process and a log process.
-     * The log process receives log-events from the main process using a pipe.
-     * All threads of the server process can generate log-events and write these to the pipe.
-     ****************************************************************************************/
-    if (pipe(fd) == -1) // Create a pipe between parent and child process(logger)
-    {
-        perror("pipe()");
-        exit(EXIT_FAILURE);
-    }
-
-    // fflush(NULL); // Flush all open streams
     pid_t pid; // Process ID
     pid = fork();
     if (pid < 0)
