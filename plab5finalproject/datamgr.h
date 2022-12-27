@@ -7,6 +7,7 @@
 #include <time.h>
 #include <string.h>
 #include <stdbool.h>
+#include <unistd.h>
 #include "config.h"
 #include "lib/dplist.h"
 #include "sbuffer.h"
@@ -25,6 +26,7 @@
 #define RUN_AVG_LENGTH 5
 extern sbuffer_t *sbuffer; // Pointer to the shared buffer
 extern char rmsg[SIZE];    // Message to be received from the child process
+extern int fd[2];          // pipe file descriptor
 
 /*
  * Use ERROR_HANDLER() for handling memory allocation problems, invalid sensor IDs, non-existing files, etc.

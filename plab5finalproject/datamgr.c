@@ -72,18 +72,18 @@ void *datamgr()
         }
         if (flag_sensor_id_right == false)
         {
-            sprintf(log_msg, "Received sensor data with invalid sensor node ID %d!\n", data->id);
+            sprintf(log_msg, "Received sensor data with invalid sensor node ID %d", data->id);
             write(fd[WRITE_END], log_msg, strlen(log_msg));
         }
 
         if (element->avg > SET_MAX_TEMP)
         {
-            sprintf(log_msg, "Sensor node %d reports it’s too cold\n", element->room_id);
+            sprintf(log_msg, "Sensor node %d reports it is too cold", element->room_id);
             write(fd[WRITE_END], log_msg, strlen(log_msg));
         }
         else if (element->avg < SET_MIN_TEMP)
         {
-            sprintf(log_msg, "Sensor node %d reports it’s too hot\n", element->room_id);
+            sprintf(log_msg, "Sensor node %d reports it is too hot", element->room_id);
             write(fd[WRITE_END], log_msg, strlen(log_msg));
         }
     }

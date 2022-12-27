@@ -10,7 +10,7 @@
 
 #define READ_END 0
 #define WRITE_END 1
-#define SIZE 50
+#define SIZE 1024
 
 typedef uint16_t sensor_id_t;
 typedef double sensor_value_t;
