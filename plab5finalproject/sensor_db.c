@@ -1,10 +1,11 @@
 #include "sensor_db.h"
 
+static char log_msg[SIZE]; // Message to be received from the child process
+
 void *storagemgr()
 {
     FILE *csv = open_db("sensor_data.csv", false); // A new, empty data.csv should be created when the server starts up. It should not be deleted when the server stops.
 
-    static char log_msg[SIZE]; // Message to be received from the child process
     strcpy(log_msg, "A new data.csv file has been created.");
     write(fd[WRITE_END], log_msg, SIZE);
 
