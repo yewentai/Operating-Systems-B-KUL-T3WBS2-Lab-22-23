@@ -14,6 +14,12 @@ void *storagemgr()
     write(fd[WRITE_END], log_msg, SIZE);
 
     sensor_data_t *data = malloc(sizeof(sensor_data_t));
+    if (sbuffer_get_head(sbuffer, data) == SBUFFER_SUCCESS)
+    {
+        insert_sensor(csv, data);
+        sprintf(log_msg, "Data insertion from sensor %d succeeded.", data->id);
+        write(fd[WRITE_END], log_msg, SIZE);
+    }
     while (sbuffer_get_head(sbuffer, data) == SBUFFER_SUCCESS)
     {
         insert_sensor(csv, data);
@@ -51,9 +57,6 @@ void insert_sensor(FILE *csv, sensor_data_t *data)
     char time_buffer[128];
     strftime(time_buffer, sizeof(time_buffer), "%d/%m/%Y %H:%M:%S", localtime(&data->ts));
     fprintf(csv, "%s,%" PRIu16 ",%.1lf\n", time_buffer, data->id, data->value);
-
-    sprintf(log_msg, "Data insertion from sensor %d succeeded.", data->id);
-    write(fd[WRITE_END], log_msg, SIZE);
 }
 
 int close_db(FILE *csv)
