@@ -19,7 +19,7 @@ void *connmgr(void *port_void)
                 num_conn++; // the number of connections (also the number of threads)
 
                 // For each client-side node communicating with the server, there is a dedicated thread to process incoming data at the server.int ret_create_thread;
-                if (pthread_create(tid + num_conn, NULL, connmgr_listen, client) != 0)
+                if (pthread_create(tid + num_conn, NULL, thread_listen, client) != 0)
                 {
                         perror("pthread_create()");
                         exit(EXIT_FAILURE);
@@ -37,7 +37,7 @@ void *connmgr(void *port_void)
         return NULL;
 }
 
-void *connmgr_listen(void *p)
+void *thread_listen(void *p_client)
 {
         tcpsock_t *client = (tcpsock_t *)p; // Client socket
         sensor_data_t data;                 // Data to be received from the child process
@@ -99,4 +99,22 @@ void *connmgr_listen(void *p)
         }
         tcp_close(&client);
         pthread_exit(NULL);
+}
+
+int receive_one_data(tcpsock_t *client, sensor_data_t *data)
+{
+        int bytes = 0;             // Number of bytes received
+        int result = TCP_NO_ERROR; // Result of the tcp_receive function
+
+        // read sensor ID
+        bytes = sizeof(data->id);
+        result = tcp_receive(client, (void *)&data->id, &bytes);
+        // read temperature
+        bytes = sizeof(data->value);
+        result = tcp_receive(client, (void *)&data->value, &bytes);
+        // read timestamp
+        bytes = sizeof(data->ts);
+        result = tcp_receive(client, (void *)&data->ts, &bytes);
+
+        return result;
 }

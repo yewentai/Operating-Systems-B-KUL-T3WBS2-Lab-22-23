@@ -34,9 +34,17 @@ from new sensor nodes.
 void *connmgr(void *port);
 
 /**
- * \brief This function is used to listen to the port
- * \param p The port number
+ * \brief This is a thread created by datamgr and used to listen to the port,
+ * each client will correspond to a thread.
+ * \param p_client The pointer to client socket
  */
-void *connmgr_listen(void *port_void);
+void *thread_listen(void *p_client);
 
+/**
+ * \brief This is a fuction used to receive and read data from the client.
+ * \param client The pointer to client socket
+ * \param data The pointer to the data structure
+ * \return The result of the tcp_receive function
+ */
+int receive_one_data(tcpsock_t *client, sensor_data_t *data);
 #endif // CONNMGR_H_

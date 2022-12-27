@@ -11,7 +11,7 @@
 				"${workspaceFolder}/lib/*.c",
 				"${workspaceFolder}/test_server.c",
 				"-o",
-				"${workspaceFolder}/build/server.exe"
+				"${workspaceFolder}/server"
 			],
 			"options": {
 				"cwd": "${fileDirname}"
@@ -35,7 +35,7 @@
 				"${workspaceFolder}/lib/*.c",
 				"${workspaceFolder}/sensor_node.c",
 				"-o",
-				"${workspaceFolder}/build/client.exe"
+				"${workspaceFolder}/build/client"
 			],
 			"options": {
 				"cwd": "${fileDirname}"
