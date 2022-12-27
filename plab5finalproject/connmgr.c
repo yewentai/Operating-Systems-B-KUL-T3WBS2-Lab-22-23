@@ -1,5 +1,6 @@
 #include "connmgr.h"
 
+static char log_msg[SIZE]; // Message to be received from the child process
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void *connmgr(void *port_void)
@@ -39,82 +40,66 @@ void *connmgr(void *port_void)
 
 void *thread_listen(void *p_client)
 {
-        tcpsock_t *client = (tcpsock_t *)p; // Client socket
-        sensor_data_t data;                 // Data to be received from the child process
-        int bytes = 0;                      // Number of bytes received
-        int result = TCP_NO_ERROR;          // Result of the tcp_receive function
-        static char log_msg[SIZE];          // Message to be received from the child process
+        tcpsock_t *client = (tcpsock_t *)p_client; // Client socket
+        sensor_data_t data;                        // Data to be received from the child process
+        int bytes = 0;                             // Number of bytes received
+        int result = TCP_NO_ERROR;                 // Result of the tcp_receive function
 
         // read sensor ID
         bytes = sizeof(data.id);
         result = tcp_receive(client, (void *)&data.id, &bytes);
+        error_handling(result, data, client);
         // read temperature
         bytes = sizeof(data.value);
         result = tcp_receive(client, (void *)&data.value, &bytes);
+        error_handling(result, data, client);
         // read timestamp
         bytes = sizeof(data.ts);
         result = tcp_receive(client, (void *)&data.ts, &bytes);
+        error_handling(result, data, client);
         // write data to sbuffer
-
-        if (result == TCP_NO_ERROR)
-        {
-                sprintf(log_msg, "Sensor node %d has opened a new connection.", data.id);
-                write(fd[WRITE_END], log_msg, strlen(log_msg) + 1);
-
-                puts("Sensor node has opened a new connection!");
-
-                sbuffer_insert(sbuffer, &data);
-        }
+        sprintf(log_msg, "Sensor node %d has opened a new connection.", data.id);
+        write(fd[WRITE_END], log_msg, strlen(log_msg) + 1);
+        puts("Sensor node has opened a new connection!");
+        sbuffer_insert(sbuffer, &data);
 
         while (result == TCP_NO_ERROR)
         {
                 // read sensor ID
                 bytes = sizeof(data.id);
                 result = tcp_receive(client, (void *)&data.id, &bytes);
+                error_handling(result, data, client);
                 // read temperature
                 bytes = sizeof(data.value);
                 result = tcp_receive(client, (void *)&data.value, &bytes);
+                error_handling(result, data, client);
                 // read timestamp
                 bytes = sizeof(data.ts);
                 result = tcp_receive(client, (void *)&data.ts, &bytes);
+                error_handling(result, data, client);
                 // write data to sbuffer
-
-                if (result == TCP_NO_ERROR)
-                {
-                        sbuffer_insert(sbuffer, &data);
-                }
+                sbuffer_insert(sbuffer, &data);
         };
+}
 
+void error_handling(int result, sensor_data_t data, tcpsock_t *client)
+{
         if (result == TCP_CONNECTION_CLOSED)
         {
+                puts("Sensor node has closed the connection!");
                 sprintf(log_msg, "Sensor node %d has closed the connection.", data.id);
                 write(fd[WRITE_END], log_msg, strlen(log_msg) + 1);
                 num_conn--;
-
-                puts("Sensor node has closed the connection!");
+                tcp_close(&client);
+                pthread_exit(NULL);
         }
-        else
+        else if (result == TCP_SOCKET_ERROR)
         {
                 puts("Error occured on connection to peer!");
+                sprintf(log_msg, "Error occured on connection to sensor node %d.", data.id);
+                write(fd[WRITE_END], log_msg, strlen(log_msg) + 1);
+                num_conn--;
+                tcp_close(&client);
+                pthread_exit(NULL);
         }
-        tcp_close(&client);
-        pthread_exit(NULL);
-}
-
-int receive_one_data(tcpsock_t *client, sensor_data_t *data)
-{
-        int bytes = 0;             // Number of bytes received
-        int result = TCP_NO_ERROR; // Result of the tcp_receive function
-
-        // read sensor ID
-        bytes = sizeof(data->id);
-        result = tcp_receive(client, (void *)&data->id, &bytes);
-        // read temperature
-        bytes = sizeof(data->value);
-        result = tcp_receive(client, (void *)&data->value, &bytes);
-        // read timestamp
-        bytes = sizeof(data->ts);
-        result = tcp_receive(client, (void *)&data->ts, &bytes);
-
-        return result;
 }

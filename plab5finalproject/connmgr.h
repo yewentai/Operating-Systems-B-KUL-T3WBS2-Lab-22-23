@@ -41,10 +41,10 @@ void *connmgr(void *port);
 void *thread_listen(void *p_client);
 
 /**
- * \brief This is a fuction used to receive and read data from the client.
- * \param client The pointer to client socket
- * \param data The pointer to the data structure
- * \return The result of the tcp_receive function
+ * \brief This function is used to handle the error of tcp_receive function
+ * \param result The result of the tcp_receive function
+ * \param data The data to be received from the child process
+ * \param client The client socket
  */
-int receive_one_data(tcpsock_t *client, sensor_data_t *data);
+void error_handling(int result, sensor_data_t data, tcpsock_t *client);
 #endif // CONNMGR_H_

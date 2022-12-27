@@ -35,7 +35,7 @@
 				"${workspaceFolder}/lib/*.c",
 				"${workspaceFolder}/sensor_node.c",
 				"-o",
-				"${workspaceFolder}/build/client"
+				"${workspaceFolder}/client"
 			],
 			"options": {
 				"cwd": "${fileDirname}"

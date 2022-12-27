@@ -22,15 +22,9 @@ void *sockedThread(void *p)
     do
     {
         sensor_data_t data;
-        // read sensor ID
-        bytes = sizeof(data.id);
-        result = tcp_receive(client, (void *)&data.id, &bytes);
-        // read temperature
-        bytes = sizeof(data.value);
-        result = tcp_receive(client, (void *)&data.value, &bytes);
-        // read timestamp
-        bytes = sizeof(data.ts);
-        result = tcp_receive(client, (void *)&data.ts, &bytes);
+        // read data from the client
+        bytes = sizeof(data);
+        result = tcp_receive(client, (void *)&data, &bytes);
         if ((result == TCP_NO_ERROR) && bytes)
         {
             printf("sensor id = %" PRIu16 " - temperature = %g - timestamp = %ld\n", data.id, data.value,
