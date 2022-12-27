@@ -47,7 +47,6 @@ void *datamgr()
     sensor_data_t *data = malloc(sizeof(sensor_data_t));
     while (sbuffer_remove(sbuffer, data) == SBUFFER_SUCCESS)
     {
-        // add the new data to the dplist
         element->sensor_id = data->id;
         element->room_id = datamgr_get_room_id(data->id, map, m);
         element->value = data->value;
@@ -132,9 +131,7 @@ time_t datamgr_get_last_modified(sensor_id_t sensor_id, dplist_t *list)
         if (((my_element_t *)dpl_get_element_at_index(list, i))->sensor_id == sensor_id)
         {
             if (((my_element_t *)dpl_get_element_at_index(list, i))->last_modified > last_modified)
-            {
                 last_modified = ((my_element_t *)dpl_get_element_at_index(list, i))->last_modified;
-            }
         }
     }
     return last_modified;
@@ -146,9 +143,7 @@ int datamgr_get_total_sensors(dplist_t *list)
     for (int i = 0; i < dpl_size(list); i++)
     {
         if (((my_element_t *)dpl_get_element_at_index(list, i))->sensor_id != ((my_element_t *)dpl_get_element_at_index(list, i + 1))->sensor_id)
-        {
             count++;
-        }
     }
     return count;
 }
