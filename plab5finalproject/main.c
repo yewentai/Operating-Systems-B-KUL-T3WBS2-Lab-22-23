@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
         perror("pthread_create()");
         exit(EXIT_FAILURE);
     }
-    sleep(1); // Wait for the connection manager to start
+    sleep(1); // Wait for the connection manager and stotage manager to start
 
     if (pthread_create(&tid_storagemgr, NULL, storagemgr, NULL) != 0)
     {
@@ -88,14 +88,14 @@ int main(int argc, char *argv[])
      * The log process receives log-events from the main process using a pipe.
      * All threads of the server process can generate log-events and write these to the pipe.
      ****************************************************************************************/
-    pid_t pid;
     if (pipe(fd) == -1) // Create a pipe between parent and child process(logger)
     {
         perror("pipe()");
         exit(EXIT_FAILURE);
     }
 
-    fflush(NULL); // Flush all open streams
+    // fflush(NULL); // Flush all open streams
+    pid_t pid; // Process ID
     pid = fork();
     if (pid < 0)
     {
@@ -117,6 +117,10 @@ int main(int argc, char *argv[])
     { // parent process
         close(fd[READ_END]);
 
+        /**************************************************************************
+         * Set a timeout for the server to run.
+         * If there is no connection for TIMEOUT seconds, the server will shut down.
+         ***************************************************************************/
         time_t tik;
         time(&tik);
         while (1)
@@ -128,11 +132,13 @@ int main(int argc, char *argv[])
             if (time(NULL) - tik > TIMEOUT && num_conn == 0)
             {
                 pthread_cancel(tid_connmgr);
-                pthread_join(tid_connmgr, NULL);
+                pthread_cancel(tid_storagemgr);
+                pthread_cancel(tid_datamgr);
                 break;
             }
         }
 
+        pthread_join(tid_connmgr, NULL);
         pthread_join(tid_storagemgr, NULL);
         pthread_join(tid_datamgr, NULL);
         close(fd[WRITE_END]);
@@ -141,12 +147,12 @@ int main(int argc, char *argv[])
     exit(EXIT_SUCCESS);
 }
 
-/**
+/*************************************************************************
  * A log-event contains an ASCII info message describing the type of event.
  * For eachlog-event received, the log process writes an ASCII message
  * to a new line in a log file called “gateway.log”.
  * \param msg The log message
- */
+ *************************************************************************/
 void append_log(char *msg)
 {
     FILE *fp;
@@ -154,12 +160,14 @@ void append_log(char *msg)
     if (fp == NULL)
     {
         perror("fopen()");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
+
     char time_buffer[128];
     time_t rawtime; // time_t is a long int
     time(&rawtime); // get current time
     strftime(time_buffer, sizeof(time_buffer), "%d/%m/%Y %H:%M:%S", localtime(&rawtime));
+
     fprintf(fp, "%d %s %s\n", seq++, time_buffer, msg);
     fclose(fp);
 }
