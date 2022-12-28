@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include "sensor_db.h"
 #include "config.h"
 
 #ifndef _SBUFFER_H_

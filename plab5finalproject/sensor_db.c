@@ -38,6 +38,14 @@ void *storagemgr()
     {
         if (sbuffer_read(sbuffer, data) == SBUFFER_SUCCESS)
             insert_sensor(csv, data);
+        else
+        {
+            pthread_mutex_lock(&mutex_pipe);
+            sprintf(log_msg, "Data insertion from sensor failed.");
+            write(fd[WRITE_END], log_msg, SIZE);
+            pthread_mutex_unlock(&mutex_pipe);
+            break;
+        }
     }
 
     close_db(csv); // Close sensor_data.csv
