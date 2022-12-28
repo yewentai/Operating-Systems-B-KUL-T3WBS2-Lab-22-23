@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
         exit(EXIT_SUCCESS);
     }
     else
-    { // parent process
+    { // Parent process
         close(fd[READ_END]);
         pthread_join(tid_connmgr, NULL);
         pthread_join(tid_storagemgr, NULL);
