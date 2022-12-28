@@ -8,7 +8,7 @@ static char log_msg[SIZE]; // Message to be received from the child process
 
 void *datamgr()
 {
-    puts("Data manager is up and running.");
+    puts("[Data manager] Data manager is up and running.");
     /*********************************************************************
      * Create a two-dimensional array to store the room_sensor information
      *********************************************************************/
@@ -38,7 +38,7 @@ void *datamgr()
         }
     }
     fclose(fp);
-    puts("The room_sensor array has been created.");
+    puts("[Data manager] The room_sensor array has been created.");
 
     /*********************************
      * insert the data into the dplist
@@ -49,7 +49,7 @@ void *datamgr()
     sensor_data_t *data = malloc(sizeof(sensor_data_t));
     while (sbuffer_remove(sbuffer, data) == SBUFFER_SUCCESS)
     {
-        puts("Data has been removed from the sbuffer.");
+        puts("[Data manager] Data has been removed from the sbuffer.");
         element->sensor_id = data->id;
         element->value = data->value;
         element->avg = datamgr_get_avg(data->id, list);

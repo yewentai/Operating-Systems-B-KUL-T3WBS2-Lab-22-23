@@ -17,13 +17,13 @@ void *connmgr(void *port_void)
 
         if (tcp_passive_open(&server, port) != TCP_NO_ERROR)
                 exit(EXIT_FAILURE);
-        puts("Connection manager is up and running.");
+        puts("[Connection manager] Connection manager is up and running.");
         do
         {
                 if (tcp_wait_for_connection(server, &client) != TCP_NO_ERROR)
                         exit(EXIT_FAILURE);
                 num_conn++; // the number of connections (also the number of corresponding threads)
-                puts("A new connection is established.");
+                puts("[Connection manager] A new connection is established.");
 
                 if (pthread_create(tid + num_conn, NULL, connmgr_listen, client) != 0)
                 {
@@ -34,7 +34,7 @@ void *connmgr(void *port_void)
 
         if (tcp_close(&server) != TCP_NO_ERROR) // Close the server socket
                 exit(EXIT_FAILURE);
-        puts("Connection manager is terminated.");
+        puts("[Connection manager] Connection manager is terminated.");
 
         for (int i = 0; i < num_conn; i++) // Wait for all threads to finish
                 pthread_join(tid[i], NULL);
@@ -44,9 +44,9 @@ void *connmgr(void *port_void)
 void *connmgr_listen(void *p_client)
 {
         tcpsock_t *client = (tcpsock_t *)p_client; // Client socket
-        sensor_data_t data;                 // Data to be received from the child process
-        int bytes = 0;                      // Number of bytes received
-        int result = TCP_NO_ERROR;          // Result of the tcp_receive function
+        sensor_data_t data;                        // Data to be received from the child process
+        int bytes = 0;                             // Number of bytes received
+        int result = TCP_NO_ERROR;                 // Result of the tcp_receive function
 
         /*****************************************
          * Read first data from the client socket
@@ -109,7 +109,7 @@ void *connmgr_listen(void *p_client)
                                 sprintf(log_msg, "Sensor node %d has closed the connection.", data.id);
                                 write(fd[WRITE_END], log_msg, strlen(log_msg) + 1);
                                 tcp_close(&client);
-                                puts("A connection is closed.");
+                                puts("[Connection manager] A connection is closed.");
                                 break;
                         }
                 }
