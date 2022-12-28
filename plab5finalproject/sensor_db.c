@@ -8,10 +8,12 @@ static char log_msg[SIZE]; // Message to be received from the child process
 
 void *storagemgr()
 {
+    puts("Storage manager is up and running.");
     FILE *csv = open_db("sensor_data.csv", false); // A new, empty data.csv should be created when the server starts up. It should not be deleted when the server stops.
 
     strcpy(log_msg, "A new data.csv file has been created.");
     write(fd[WRITE_END], log_msg, SIZE);
+    puts("A new data.csv file has been created.");
 
     sensor_data_t *data = malloc(sizeof(sensor_data_t));
     if (sbuffer_get_head(sbuffer, data) == SBUFFER_SUCCESS)
@@ -22,7 +24,7 @@ void *storagemgr()
     }
     else
     {
-        sprintf(log_msg, "Data insertion from sensor %d failed.", data->id);
+        sprintf(log_msg, "Data insertion from sensor failed.");
         write(fd[WRITE_END], log_msg, SIZE);
     }
     while (sbuffer_get_head(sbuffer, data) == SBUFFER_SUCCESS)

@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    sleep(1); // Wait for the connection manager and stotage manager to start
+    sleep(2); // Wait for the connection manager and stotage manager to start
     if (pthread_create(&tid_storagemgr, NULL, storagemgr, NULL) != 0)
     {
         perror("pthread_create()");

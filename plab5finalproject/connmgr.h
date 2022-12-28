@@ -38,13 +38,6 @@ void *connmgr(void *port);
  * each client will correspond to a thread.
  * \param p_client The pointer to client socket
  */
-void *thread_listen(void *p_client);
+void *connmgr_listen(void *p_client);
 
-/**
- * \brief This function is used to handle the error of tcp_receive function
- * \param result The result of the tcp_receive function
- * \param data The data to be received from the child process
- * \param client The client socket
- */
-void error_handling(int result, sensor_data_t data, tcpsock_t *client);
 #endif // CONNMGR_H_

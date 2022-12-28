@@ -7,7 +7,7 @@
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static char log_msg[SIZE]; // Message to be sent to the child process
 
-void *connmgr_listen(void *p);
+void *connmgr_listen(void *p_client);
 
 void *connmgr(void *port_void)
 {
@@ -41,9 +41,9 @@ void *connmgr(void *port_void)
         return NULL;
 }
 
-void *connmgr_listen(void *p)
+void *connmgr_listen(void *p_client)
 {
-        tcpsock_t *client = (tcpsock_t *)p; // Client socket
+        tcpsock_t *client = (tcpsock_t *)p_client; // Client socket
         sensor_data_t data;                 // Data to be received from the child process
         int bytes = 0;                      // Number of bytes received
         int result = TCP_NO_ERROR;          // Result of the tcp_receive function

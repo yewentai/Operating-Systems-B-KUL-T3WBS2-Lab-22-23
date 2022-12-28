@@ -8,6 +8,7 @@ static char log_msg[SIZE]; // Message to be received from the child process
 
 void *datamgr()
 {
+    puts("Data manager is up and running.");
     /*********************************************************************
      * Create a two-dimensional array to store the room_sensor information
      *********************************************************************/
@@ -37,6 +38,7 @@ void *datamgr()
         }
     }
     fclose(fp);
+    puts("The room_sensor array has been created.");
 
     /*********************************
      * insert the data into the dplist
@@ -47,11 +49,11 @@ void *datamgr()
     sensor_data_t *data = malloc(sizeof(sensor_data_t));
     while (sbuffer_remove(sbuffer, data) == SBUFFER_SUCCESS)
     {
+        puts("Data has been removed from the sbuffer.");
         element->sensor_id = data->id;
-        element->room_id = datamgr_get_room_id(data->id, map, m);
         element->value = data->value;
         element->avg = datamgr_get_avg(data->id, list);
-        element->last_modified = data->ts;
+        element->ts = data->ts;
         dpl_insert_at_index(list, element, 0, true);
 
         /*******************************************************
@@ -75,12 +77,12 @@ void *datamgr()
         // check if the temperature is out of range
         if (element->avg > SET_MAX_TEMP)
         {
-            sprintf(log_msg, "Sensor node %d reports it is too cold", element->room_id);
+            sprintf(log_msg, "Sensor node %d reports it is too cold", element->sensor_id);
             write(fd[WRITE_END], log_msg, strlen(log_msg));
         }
         else if (element->avg < SET_MIN_TEMP)
         {
-            sprintf(log_msg, "Sensor node %d reports it is too hot", element->room_id);
+            sprintf(log_msg, "Sensor node %d reports it is too hot", element->sensor_id);
             write(fd[WRITE_END], log_msg, strlen(log_msg));
         }
     }
@@ -123,18 +125,18 @@ sensor_value_t datamgr_get_avg(sensor_id_t sensor_id, dplist_t *list)
     return avg / count;
 }
 
-time_t datamgr_get_last_modified(sensor_id_t sensor_id, dplist_t *list)
+time_t datamgr_get_ts(sensor_id_t sensor_id, dplist_t *list)
 {
-    time_t last_modified = 0;
+    time_t ts = 0;
     for (int i = 0; i < dpl_size(list); i++)
     {
         if (((my_element_t *)dpl_get_element_at_index(list, i))->sensor_id == sensor_id)
         {
-            if (((my_element_t *)dpl_get_element_at_index(list, i))->last_modified > last_modified)
-                last_modified = ((my_element_t *)dpl_get_element_at_index(list, i))->last_modified;
+            if (((my_element_t *)dpl_get_element_at_index(list, i))->ts > ts)
+                ts = ((my_element_t *)dpl_get_element_at_index(list, i))->ts;
         }
     }
-    return last_modified;
+    return ts;
 }
 
 int datamgr_get_total_sensors(dplist_t *list)
@@ -153,9 +155,9 @@ void *element_copy(void *element)
     my_element_t *copy = malloc(sizeof(my_element_t));
     assert(copy != NULL);
     copy->sensor_id = ((my_element_t *)element)->sensor_id;
-    copy->room_id = ((my_element_t *)element)->room_id;
+    copy->value = ((my_element_t *)element)->value;
     copy->avg = ((my_element_t *)element)->avg;
-    copy->last_modified = ((my_element_t *)element)->last_modified;
+    copy->ts = ((my_element_t *)element)->ts;
     return (void *)copy;
 }
 
