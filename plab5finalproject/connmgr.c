@@ -7,6 +7,40 @@
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static char log_msg[SIZE]; // Message to be sent to the child process
 
+void *connmgr_listen(void *p);
+
+void *connmgr(void *port_void)
+{
+        int port = *(int *)port_void; // Port number
+        pthread_t tid[MAX_CONN];      // Thread ID
+        tcpsock_t *server, *client;   // Server and client socket
+
+        if (tcp_passive_open(&server, port) != TCP_NO_ERROR)
+                exit(EXIT_FAILURE);
+        puts("Connection manager is up and running.");
+        do
+        {
+                if (tcp_wait_for_connection(server, &client) != TCP_NO_ERROR)
+                        exit(EXIT_FAILURE);
+                num_conn++; // the number of connections (also the number of corresponding threads)
+                puts("A new connection is established.");
+
+                if (pthread_create(tid + num_conn, NULL, connmgr_listen, client) != 0)
+                {
+                        perror("pthread_create()");
+                        exit(EXIT_FAILURE);
+                }
+        } while (num_conn < MAX_CONN);
+
+        if (tcp_close(&server) != TCP_NO_ERROR) // Close the server socket
+                exit(EXIT_FAILURE);
+        puts("Connection manager is terminated.");
+
+        for (int i = 0; i < num_conn; i++) // Wait for all threads to finish
+                pthread_join(tid[i], NULL);
+        return NULL;
+}
+
 void *connmgr_listen(void *p)
 {
         tcpsock_t *client = (tcpsock_t *)p; // Client socket
@@ -75,39 +109,10 @@ void *connmgr_listen(void *p)
                                 sprintf(log_msg, "Sensor node %d has closed the connection.", data.id);
                                 write(fd[WRITE_END], log_msg, strlen(log_msg) + 1);
                                 tcp_close(&client);
+                                puts("A connection is closed.");
                                 break;
                         }
                 }
         }
         pthread_exit(NULL);
-}
-
-void *connmgr(void *port_void)
-{
-        int port = *(int *)port_void; // Port number
-        pthread_t tid[MAX_CONN];      // Thread ID
-        tcpsock_t *server, *client;   // Server and client socket
-
-        if (tcp_passive_open(&server, port) != TCP_NO_ERROR)
-                exit(EXIT_FAILURE);
-        do
-        {
-                if (tcp_wait_for_connection(server, &client) != TCP_NO_ERROR)
-                        exit(EXIT_FAILURE);
-                num_conn++; // the number of connections (also the number of corresponding threads)
-
-                if (pthread_create(tid + num_conn, NULL, connmgr_listen, client) != 0)
-                { // For each client-side node communicating with the server, there is a dedicated thread to process incoming data at the server.int ret_create_thread;
-                        perror("pthread_create()");
-                        exit(EXIT_FAILURE);
-                }
-
-        } while (num_conn < MAX_CONN);
-
-        if (tcp_close(&server) != TCP_NO_ERROR) // Close the server socket
-                exit(EXIT_FAILURE);
-
-        for (int i = 0; i < num_conn; i++) // Wait for all threads to finish
-                pthread_join(tid[i], NULL);
-        return NULL;
 }
