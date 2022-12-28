@@ -8,7 +8,7 @@ static char log_msg[SIZE]; // Message to be received from the child process
 
 void *datamgr()
 {
-    puts("[Data manager] Data manager is up and running.");
+    puts("[Data manager] Data manager Started!");
     /*********************************************************************
      * Create a two-dimensional array to store the room_sensor information
      *********************************************************************/
@@ -71,19 +71,25 @@ void *datamgr()
         }
         if (flag_sensor_id_right == false)
         {
+            pthread_mutex_lock(&mutex_pipe);
             sprintf(log_msg, "Received sensor data with invalid sensor node ID %d", data->id);
             write(fd[WRITE_END], log_msg, strlen(log_msg));
+            pthread_mutex_unlock(&mutex_pipe);
         }
         // check if the temperature is out of range
         if (element->avg > SET_MAX_TEMP)
         {
+            pthread_mutex_lock(&mutex_pipe);
             sprintf(log_msg, "Sensor node %d reports it is too cold((avg temp = %0.2lf)", element->sensor_id, element->avg);
             write(fd[WRITE_END], log_msg, strlen(log_msg));
+            pthread_mutex_unlock(&mutex_pipe);
         }
         else if (element->avg < SET_MIN_TEMP)
         {
+            pthread_mutex_lock(&mutex_pipe);
             sprintf(log_msg, "Sensor node %d reports it is too hot((avg temp = %0.2lf)", element->sensor_id, element->avg);
             write(fd[WRITE_END], log_msg, strlen(log_msg));
+            pthread_mutex_unlock(&mutex_pipe);
         }
     }
     free(element);

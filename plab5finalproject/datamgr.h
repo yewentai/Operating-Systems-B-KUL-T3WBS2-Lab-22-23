@@ -27,6 +27,7 @@
 extern sbuffer_t *sbuffer; // Pointer to the shared buffer
 extern char rmsg[SIZE];    // Message to be received from the child process
 extern int fd[2];          // pipe file descriptor
+extern pthread_mutex_t mutex_pipe;
 
 /*
  * Use ERROR_HANDLER() for handling memory allocation problems, invalid sensor IDs, non-existing files, etc.

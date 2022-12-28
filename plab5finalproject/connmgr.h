@@ -22,9 +22,10 @@
 
 #define MAX_CONN 3 // state the max number of connections the server will handle
 
-extern int num_conn; // Number of connections
-extern int fd[2];    // File descriptor for the pipe
-extern sbuffer_t *sbuffer;
+extern int num_conn;               // Number of connections
+extern int fd[2];                  // File descriptor for the pipe
+extern sbuffer_t *sbuffer;         // Shared buffer
+extern pthread_mutex_t mutex_pipe; // Mutex for the log file
 
 /**
  * The connection manager listens on a TCP socket for incoming connection requests

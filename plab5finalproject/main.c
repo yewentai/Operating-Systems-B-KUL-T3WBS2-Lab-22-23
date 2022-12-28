@@ -17,11 +17,11 @@
 #include "sbuffer.h"
 #include "lib/tcpsock.h"
 
-int num_conn = 0;          // Number of connections
-int fd[2];                 // File descriptor for the pipe
-sbuffer_t *sbuffer = NULL; // Shared buffer
-static int seq = 0;        // Sequence number of the log file
-pthread_mutex_t mutex_log; // Mutex for the log file
+int num_conn = 0;           // Number of connections
+int fd[2];                  // File descriptor for the pipe
+sbuffer_t *sbuffer = NULL;  // Shared buffer
+static int seq = 0;         // Sequence number of the log file
+pthread_mutex_t mutex_pipe; // Mutex for the log file
 
 void append_log(char *msg);
 
@@ -53,7 +53,6 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
     fclose(fp);
-    pthread_mutex_init(&mutex_log, NULL); // Initialize the mutex for the log file
 
     /**********************************************************************
      *A shared data structure is used for communication between all threads.
@@ -70,6 +69,7 @@ int main(int argc, char *argv[])
         perror("pipe()");
         exit(EXIT_FAILURE);
     }
+    pthread_mutex_init(&mutex_pipe, NULL); // Initialize the mutex for the log file
 
     /************************************************************************
      * The main process runs three threads at startup: the connection manager,
@@ -145,10 +145,6 @@ void append_log(char *msg)
     time_t rawtime; // time_t is a long int
     time(&rawtime); // get current time
     strftime(time_buffer, sizeof(time_buffer), "%d/%m/%Y %H:%M:%S", localtime(&rawtime));
-
-    pthread_mutex_lock(&mutex_log);
     fprintf(fp, "%d %s %s\n", seq++, time_buffer, msg);
-    pthread_mutex_unlock(&mutex_log);
-
     fclose(fp);
 }

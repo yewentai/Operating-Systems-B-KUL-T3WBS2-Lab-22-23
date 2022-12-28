@@ -17,7 +17,7 @@ void *connmgr(void *port_void)
 
         if (tcp_passive_open(&server, port) != TCP_NO_ERROR)
                 exit(EXIT_FAILURE);
-        puts("[Connection manager] Connection manager is up and running.");
+        puts("[Connection manager] Connection manager Started!");
         do
         {
                 if (tcp_wait_for_connection(server, &client) != TCP_NO_ERROR)
@@ -63,8 +63,10 @@ void *connmgr_listen(void *p_client)
         if (result == TCP_NO_ERROR)
         {
                 // write data to sbuffer
+                pthread_mutex_lock(&mutex_pipe);
                 sprintf(log_msg, "Sensor node %d has opened a new connection.", data.id);
                 write(fd[WRITE_END], log_msg, strlen(log_msg) + 1);
+                pthread_mutex_unlock(&mutex_pipe);
                 sbuffer_insert(sbuffer, &data);
 
                 /********************************************************
@@ -94,8 +96,10 @@ void *connmgr_listen(void *p_client)
 
         if (result == TCP_SOCKET_ERROR)
         {
+                pthread_mutex_lock(&mutex_pipe);
                 sprintf(log_msg, "Error occured on connection to peer!");
                 write(fd[WRITE_END], log_msg, strlen(log_msg) + 1);
+                pthread_mutex_unlock(&mutex_pipe);
         }
         else if (result == TCP_CONNECTION_CLOSED)
         {
@@ -106,8 +110,10 @@ void *connmgr_listen(void *p_client)
                         if (time(NULL) - tik > TIMEOUT)
                         {
                                 num_conn--;
+                                pthread_mutex_lock(&mutex_pipe);
                                 sprintf(log_msg, "Sensor node %d has closed the connection.", data.id);
                                 write(fd[WRITE_END], log_msg, strlen(log_msg) + 1);
+                                pthread_mutex_unlock(&mutex_pipe);
                                 tcp_close(&client);
                                 puts("[Connection manager] A connection is closed.");
                                 break;

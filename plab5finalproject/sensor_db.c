@@ -8,28 +8,36 @@ static char log_msg[SIZE]; // Message to be received from the child process
 
 void *storagemgr()
 {
-    puts("[Storage manager] Storage manager is up and running.");
+    puts("[Storage manager] Storage manager Started!");
     FILE *csv = open_db("sensor_data.csv", false); // A new, empty data.csv should be created when the server starts up. It should not be deleted when the server stops.
 
+    pthread_mutex_lock(&mutex_pipe);
     strcpy(log_msg, "A new data.csv file has been created.");
     write(fd[WRITE_END], log_msg, SIZE);
+    pthread_mutex_unlock(&mutex_pipe);
     puts("[Storage manager] A new data.csv file has been created.");
 
     sensor_data_t *data = malloc(sizeof(sensor_data_t));
     if (sbuffer_get_head(sbuffer, data) == SBUFFER_SUCCESS)
     {
         insert_sensor(csv, data);
+        pthread_mutex_lock(&mutex_pipe);
         sprintf(log_msg, "Data insertion from sensor %d succeeded.", data->id);
         write(fd[WRITE_END], log_msg, SIZE);
+        pthread_mutex_unlock(&mutex_pipe);
+        puts("[Storage manager] Data insertion from sensor succeeded.");
     }
     else
     {
+        pthread_mutex_lock(&mutex_pipe);
         sprintf(log_msg, "Data insertion from sensor failed.");
         write(fd[WRITE_END], log_msg, SIZE);
+        pthread_mutex_unlock(&mutex_pipe);
     }
-    while (sbuffer_get_head(sbuffer, data) == SBUFFER_SUCCESS)
+    while (1)
     {
-        insert_sensor(csv, data);
+        if (sbuffer_get_head(sbuffer, data) == SBUFFER_SUCCESS)
+            insert_sensor(csv, data);
     }
 
     close_db(csv); // Close sensor_data.csv
@@ -74,8 +82,10 @@ int close_db(FILE *csv)
         exit(EXIT_FAILURE);
     }
     fclose(csv);
+    pthread_mutex_lock(&mutex_pipe);
     strcpy(log_msg, "The data.csv file has been closed.");
     write(fd[WRITE_END], log_msg, SIZE);
+    pthread_mutex_unlock(&mutex_pipe);
     puts("[Storage manager] The data.csv file has been closed.");
     return 0;
 }
