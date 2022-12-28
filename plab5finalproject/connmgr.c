@@ -26,9 +26,9 @@ void *connmgr_listen(void *p)
         // read timestamp
         bytes = sizeof(data.ts);
         result = tcp_receive(client, (void *)&data.ts, &bytes);
-        // write data to sbuffer
         if (result == TCP_NO_ERROR)
         {
+                // write data to sbuffer
                 sprintf(log_msg, "Sensor node %d has opened a new connection.", data.id);
                 write(fd[WRITE_END], log_msg, strlen(log_msg) + 1);
                 sbuffer_insert(sbuffer, &data);
@@ -38,10 +38,8 @@ void *connmgr_listen(void *p)
                  * until the connection is closed and timeout is reached
                  * or an error occurs
                  ********************************************************/
-                while (result == TCP_NO_ERROR)
+                while (1)
                 {
-                        // write data to sbuffer
-                        sbuffer_insert(sbuffer, &data);
                         // read sensor ID
                         bytes = sizeof(data.id);
                         result = tcp_receive(client, (void *)&data.id, &bytes);
@@ -51,9 +49,16 @@ void *connmgr_listen(void *p)
                         // read timestamp
                         bytes = sizeof(data.ts);
                         result = tcp_receive(client, (void *)&data.ts, &bytes);
+                        // write data to sbuffer
+                        sbuffer_insert(sbuffer, &data);
+                        if (result == TCP_NO_ERROR)
+                                sbuffer_insert(sbuffer, &data);
+                        else
+                                break;
                 }
         }
-        else if (result == TCP_SOCKET_ERROR)
+
+        if (result == TCP_SOCKET_ERROR)
         {
                 sprintf(log_msg, "Error occured on connection to peer!");
                 write(fd[WRITE_END], log_msg, strlen(log_msg) + 1);
