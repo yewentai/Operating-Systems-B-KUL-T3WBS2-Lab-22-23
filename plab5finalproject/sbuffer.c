@@ -3,6 +3,7 @@
  */
 
 #include "sbuffer.h"
+bool read_done = false;
 
 /**
  * basic node for the buffer, these nodes are linked together to create the buffer
@@ -66,30 +67,26 @@ int sbuffer_remove(sbuffer_t *buffer, sensor_data_t *data)
     *data = buffer->head->data;
     dummy = buffer->head;
     pthread_mutex_lock(&(buffer->lock_head));
+    pthread_cond_wait(&(buffer->cond_signal), &(buffer->lock_head));
     if (buffer->head == buffer->tail) // buffer has only one node
-    {
         buffer->head = buffer->tail = NULL;
-    }
     else // buffer has many nodes empty
-    {
         buffer->head = buffer->head->next;
-    }
-    pthread_cond_signal(&(buffer->cond_signal));
+    
     pthread_mutex_unlock(&(buffer->lock_head));
     free(dummy);
     return SBUFFER_SUCCESS;
 }
 
-int sbuffer_get_head(sbuffer_t *buffer, sensor_data_t *data)
+int sbuffer_read(sbuffer_t *buffer, sensor_data_t *data)
 {
     if (buffer == NULL)
         return SBUFFER_FAILURE;
     if (buffer->head == NULL)
         return SBUFFER_NO_DATA;
-    pthread_mutex_lock(&(buffer->lock_head));
     *data = buffer->head->data;
-    pthread_cond_wait(&(buffer->cond_signal), &(buffer->lock_head));
-    pthread_mutex_unlock(&(buffer->lock_head));
+    read_done = true;
+    pthread_cond_signal(&(buffer->cond_signal));
     return SBUFFER_SUCCESS;
 }
 

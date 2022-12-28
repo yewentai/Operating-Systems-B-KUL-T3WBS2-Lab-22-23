@@ -18,7 +18,7 @@ void *storagemgr()
     puts("[Storage manager] A new data.csv file has been created.");
 
     sensor_data_t *data = malloc(sizeof(sensor_data_t));
-    if (sbuffer_get_head(sbuffer, data) == SBUFFER_SUCCESS)
+    if (sbuffer_read(sbuffer, data) == SBUFFER_SUCCESS)
     {
         insert_sensor(csv, data);
         pthread_mutex_lock(&mutex_pipe);
@@ -36,7 +36,7 @@ void *storagemgr()
     }
     while (1)
     {
-        if (sbuffer_get_head(sbuffer, data) == SBUFFER_SUCCESS)
+        if (sbuffer_read(sbuffer, data) == SBUFFER_SUCCESS)
             insert_sensor(csv, data);
     }
 

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <stdbool.h>
 #include "config.h"
 
 #ifndef _SBUFFER_H_
@@ -47,7 +48,7 @@ int sbuffer_remove(sbuffer_t *buffer, sensor_data_t *data);
  * \param data a pointer to pre-allocated sensor_data_t space, the data will be copied into this structure. No new memory is allocated for 'data' in this function.
  * \return SBUFFER_SUCCESS on success and SBUFFER_FAILURE if an error occurred
  */
-int sbuffer_get_head(sbuffer_t *buffer, sensor_data_t *data);
+int sbuffer_read(sbuffer_t *buffer, sensor_data_t *data);
 
 /**
  * Inserts the sensor data in 'data' at the end of 'buffer' (at the 'tail')
