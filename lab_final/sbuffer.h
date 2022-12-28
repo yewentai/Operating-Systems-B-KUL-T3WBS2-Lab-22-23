@@ -19,7 +19,7 @@ extern sbuffer_t *buffer;
  * \param buffer a double pointer to the buffer that needs to be initialized
  * \return SBUFFER_SUCCESS on success and SBUFFER_FAILURE if an error occurred
  */
-int stormgr_init(FILE* file);
+int stormgr_init(FILE *file);
 
 int sbuffer_init(sbuffer_t **buffer);
 
@@ -44,7 +44,7 @@ int sbuffer_remove(sbuffer_t *buffer, sensor_data_t *data, short unsigned int re
  * \param buffer a pointer to the buffer that is used
  * \param data a pointer to sensor_data_t data, that will be copied into the buffer
  * \return SBUFFER_SUCCESS on success and SBUFFER_FAILURE if an error occured
-*/
+ */
 int sbuffer_insert(sbuffer_t *buffer, sensor_data_t *data);
 
-#endif  //_SBUFFER_H_
+#endif //_SBUFFER_H_

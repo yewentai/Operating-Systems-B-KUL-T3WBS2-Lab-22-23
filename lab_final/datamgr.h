@@ -26,27 +26,30 @@
 /*
  * Use ERROR_HANDLER() for handling memory allocation problems, invalid sensor IDs, non-existing files, etc.
  */
-#define ERROR_HANDLER(condition, ...)    do {                       \
-                      if (condition) {                              \
-                        printf("\nError: in %s - function %s at line %d: %s\n", __FILE__, __func__, __LINE__, __VA_ARGS__); \
-                        exit(EXIT_FAILURE);                         \
-                      }                                             \
-                    } while(0)
+#define ERROR_HANDLER(condition, ...)                                                                     \
+  do                                                                                                      \
+  {                                                                                                       \
+    if (condition)                                                                                        \
+    {                                                                                                     \
+      printf("\nError: in %s - function %s at line %d: %s\n", __FILE__, __func__, __LINE__, __VA_ARGS__); \
+      exit(EXIT_FAILURE);                                                                                 \
+    }                                                                                                     \
+  } while (0)
 
 /**
- *  This method holds the core functionality of your datamgr. It takes in 2 file pointers to the sensor files and parses them. 
+ *  This method holds the core functionality of your datamgr. It takes in 2 file pointers to the sensor files and parses them.
  *  When the method finishes all data should be in the internal pointer list and all log messages should be printed to stderr.
  *  \param fp_sensor_map file pointer to the map file
  *  \param fp_sensor_data file pointer to the binary data file
  */
-//void datamgr_parse_sensor_files(FILE *fp_sensor_map, FILE *fp_sensor_data);
+// void datamgr_parse_sensor_files(FILE *fp_sensor_map, FILE *fp_sensor_data);
 
-extern sbuffer_t* buffer;
-//extern pthread_mutex_t lock;
+extern sbuffer_t *buffer;
+// extern pthread_mutex_t lock;
 extern short unsigned int over;
 void datamgr_parse_sensor_files(FILE *fp_sensor_map);
 /**
- * This method should be called to clean up the datamgr, and to free all used memory. 
+ * This method should be called to clean up the datamgr, and to free all used memory.
  * After this, any call to datamgr_get_room_id, datamgr_get_avg, datamgr_get_last_modified or datamgr_get_total_sensors will not return a valid result
  */
 void datamgr_free();
@@ -81,16 +84,16 @@ time_t datamgr_get_last_modified(sensor_id_t sensor_id);
  */
 int datamgr_get_total_sensors();
 
-//void * element_copy(void * element);
+// void * element_copy(void * element);
 
-//void element_free(void ** element);
+// void element_free(void ** element);
 
-//int element_compare(void * x, void * y);
+// int element_compare(void * x, void * y);
 
-element_t* datamgr_get_node_by_sensor(sensor_id_t sensor_id);
+element_t *datamgr_get_node_by_sensor(sensor_id_t sensor_id);
 
 int datamgr_get_index_by_sensor(sensor_id_t sensor_id);
 
-sensor_value_t get_zeros(sensor_value_t arr[][RUN_AVG_LENGTH],int i,sensor_value_t value);
+sensor_value_t get_zeros(sensor_value_t arr[][RUN_AVG_LENGTH], int i, sensor_value_t value);
 
-#endif  //DATAMGR_H_
+#endif // DATAMGR_H_
