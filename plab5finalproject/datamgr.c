@@ -77,12 +77,12 @@ void *datamgr()
         // check if the temperature is out of range
         if (element->avg > SET_MAX_TEMP)
         {
-            sprintf(log_msg, "Sensor node %d reports it is too cold((avg temp = %d)", element->sensor_id, element->avg);
+            sprintf(log_msg, "Sensor node %d reports it is too cold((avg temp = %lf)", element->sensor_id, element->avg);
             write(fd[WRITE_END], log_msg, strlen(log_msg));
         }
         else if (element->avg < SET_MIN_TEMP)
         {
-            sprintf(log_msg, "Sensor node %d reports it is too hot((avg temp = %d)", element->sensor_id, element->avg);
+            sprintf(log_msg, "Sensor node %d reports it is too hot((avg temp = %lf)", element->sensor_id, element->avg);
             write(fd[WRITE_END], log_msg, strlen(log_msg));
         }
     }

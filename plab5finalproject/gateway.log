@@ -1,3 +1,10 @@
-0 28/12/2022 20:15:09 Sensor node 15 has opened a new connection.
-1 28/12/2022 20:15:09 
-2 28/12/2022 20:15:13 Sensor node 15 has closed the connection.
+0 28/12/2022 20:20:46 Sensor node 15 has opened a new connection.
+1 28/12/2022 20:20:46 
+2 28/12/2022 20:20:46 Data insertion from sensor 15 succeeded.
+3 28/12/2022 20:20:46 Sensor node 15 reports it is too hot((avg temp = 0.000000)
+4 28/12/2022 20:20:46 Sensor node 15 reports it is too hot((avg temp = 0.000000)
+5 28/12/2022 20:20:46 Sensor node 15 reports it is too hot((avg temp = 0.000000)
+6 28/12/2022 20:20:46 Sensor node 15 reports it is too hot((avg temp = 0.000000)
+7 28/12/2022 20:20:46 Sensor node 15 reports it is too hot((avg temp = 0.000000)Sensor node 15 reports it is too hot((avg temp = 0.000000)
+8 28/12/2022 20:20:46 The data.csv file has been closed.
+9 28/12/2022 20:20:52 Sensor node 15 has closed the connection.

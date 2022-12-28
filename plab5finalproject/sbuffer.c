@@ -74,7 +74,7 @@ int sbuffer_remove(sbuffer_t *buffer, sensor_data_t *data)
     {
         buffer->head = buffer->head->next;
     }
-    // pthread_cond_signal(&(buffer->cond_signal));
+    pthread_cond_signal(&(buffer->cond_signal));
     pthread_mutex_unlock(&(buffer->lock_head));
     free(dummy);
     return SBUFFER_SUCCESS;
