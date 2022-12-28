@@ -66,6 +66,12 @@ void dpl_free(dplist_t **list, bool free_element)
 {
     if (*list == NULL)
         return;
+    if ((*list)->head == NULL)
+    {
+        free(*list);
+        *list = NULL;
+        return;
+    }
     dplist_node_t *current = (*list)->head;
     dplist_node_t *next = NULL;
     while (current != NULL)
