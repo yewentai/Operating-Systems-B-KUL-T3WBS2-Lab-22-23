@@ -20,7 +20,7 @@
 #error TIMEOUT not set
 #endif
 
-#define MAX_CONN 99 // state the max number of connections the server will handle
+#define MAX_CONN 3 // state the max number of connections the server will handle
 
 extern int num_conn; // Number of connections
 extern int fd[2];    // File descriptor for the pipe
