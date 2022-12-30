@@ -9,6 +9,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <stdbool.h>
 
 #ifndef __TCPSOCK_H__
 #define __TCPSOCK_H__
@@ -22,6 +23,8 @@
 #define TCP_CONNECTION_CLOSED 4 // send/receive indicate connection is closed
 #define TCP_MEMORY_ERROR 5      // mem alloc error
 #define MAX_PENDING 10
+
+extern bool quit;
 
 typedef struct tcpsock tcpsock_t;
 

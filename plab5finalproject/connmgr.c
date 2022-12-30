@@ -13,7 +13,8 @@ void *connmgr(void *port_void)
         int port = *(int *)port_void; // Port number
         pthread_t tid[MAX_CONN];      // Thread ID
         timeout.tv_sec = TIMEOUT;     // Timeout for tcp_receive()
-        timeout.tv_usec = 0;
+        timeout.tv_usec = 0;          // Timeout for tcp_receive()
+        int tol_conn = 0;             // The total number of connections
         if (tcp_passive_open(&server, port) != TCP_NO_ERROR)
                 exit(EXIT_FAILURE);
         puts("[Connection manager] Connection manager Started!");
@@ -23,6 +24,7 @@ void *connmgr(void *port_void)
                 if (tcp_wait_for_connection(server, &client) != TCP_NO_ERROR)
                         exit(EXIT_FAILURE);
                 num_conn++; // The number of connections
+                tol_conn++; // The total number of connections
                 puts("[Connection manager] A new connection is established.");
 
                 if (pthread_create(tid + num_conn, NULL, connmgr_listen, client) != 0)
@@ -30,12 +32,11 @@ void *connmgr(void *port_void)
                         perror("pthread_create()");
                         exit(EXIT_FAILURE);
                 }
-        } while (num_conn < MAX_CONN && !quit);
+        } while (tol_conn < MAX_CONN);
 
         if (tcp_close(&server) != TCP_NO_ERROR) // Close the server socket
                 exit(EXIT_FAILURE);
         puts("[Connection manager] Connection manager is terminated.");
-
         for (int i = 0; i < num_conn; i++) // Wait for all threads to finish
                 pthread_join(tid[i], NULL);
         return NULL;

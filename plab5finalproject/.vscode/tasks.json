@@ -19,7 +19,7 @@
                 "${workspaceFolder}/server",
                 "-DSET_MIN_TEMP=10",
                 "-DSET_MAX_TEMP=20",
-                "-DMAX_CONN=5",
+                "-DMAX_CONN=2",
                 "-DTIMEOUT=5",
                 "-Werror",
                 "-lpthread"

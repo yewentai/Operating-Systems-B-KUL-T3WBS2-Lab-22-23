@@ -78,7 +78,6 @@ int main(int argc, char *argv[])
         perror("pthread_create()");
         exit(EXIT_FAILURE);
     }
-    sleep(4);
     if (pthread_create(&tid_datamgr, NULL, datamgr, NULL) != 0)
     {
         perror("pthread_create()");
@@ -127,22 +126,28 @@ int main(int argc, char *argv[])
         time(&tik);
         while (1)
         {
-            if (time(NULL) - tik > TIMEOUT && num_conn == 0)
+            if (num_conn != 0)
+            {
+                time(&tik);
+            }
+            else if (time(NULL) - tik > TIMEOUT)
             {
                 quit = true;
+                pthread_cancel(tid_connmgr);
                 break;
             }
         }
         pthread_join(tid_connmgr, NULL);
         pthread_join(tid_datamgr, NULL);
         pthread_join(tid_storagemgr, NULL);
+        puts("All threads have been terminated.");
+        pthread_mutex_lock(&mutex_pipe);
+        sprintf(log_tmsg, "The gateway has been shut down.");
+        write(fd[WRITE_END], log_tmsg, SIZE);
+        pthread_mutex_unlock(&mutex_pipe);
         close(fd[WRITE_END]);
         wait(NULL);
     }
-    pthread_mutex_lock(&mutex_pipe);
-    sprintf(log_tmsg, "The gateway has been shut down.");
-    write(fd[WRITE_END], log_tmsg, SIZE);
-    pthread_mutex_unlock(&mutex_pipe);
     exit(EXIT_SUCCESS);
 }
 
