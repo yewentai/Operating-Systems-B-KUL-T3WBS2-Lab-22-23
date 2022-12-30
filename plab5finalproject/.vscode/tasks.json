@@ -16,7 +16,7 @@
                 "${workspaceFolder}/lib/tcpsock.c",
                 "${workspaceFolder}/lib/dplist.c",
                 "-o",
-                "${workspaceFolder}/server",
+                "${workspaceFolder}/sensor_gateway",
                 "-DSET_MIN_TEMP=10",
                 "-DSET_MAX_TEMP=20",
                 "-DMAX_CONN=2",
