@@ -21,10 +21,6 @@
 extern int fd[2]; // pipe file descriptor
 extern sbuffer_t *sbuffer;
 extern pthread_mutex_t mutex_pipe;
-extern pthread_mutex_t mutex_sbuffer_head;
-extern pthread_mutex_t mutex_sbuffer_tail;
-extern pthread_cond_t cond_signal_head;
-extern pthread_cond_t cond_signal_tail;
 extern bool quit;
 
 /**

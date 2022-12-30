@@ -13,7 +13,9 @@
         "config.h": "c",
         "dplist.h": "c",
         "datamgr.h": "c",
-        "sensor_db.h": "c"
+        "sensor_db.h": "c",
+        "aio.h": "c",
+        "time.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

@@ -9,6 +9,7 @@
 #include <pthread.h>
 #include <string.h>
 #include <time.h>
+#include <sys/time.h>
 #include "config.h"
 #include "sbuffer.h"
 #include "lib/tcpsock.h"

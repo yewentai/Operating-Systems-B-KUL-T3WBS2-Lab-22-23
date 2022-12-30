@@ -25,14 +25,10 @@
 
 #define RUN_AVG_LENGTH 5
 
-extern int fd[2];                          // pipe file descriptor
-extern sbuffer_t *sbuffer;                 // Pointer to the shared buffer
-extern pthread_mutex_t mutex_pipe;         // Mutex for the log file
-extern pthread_mutex_t mutex_sbuffer_head; // Mutex for the shared buffer
-extern pthread_mutex_t mutex_sbuffer_tail; // Mutex for the shared buffer
-extern pthread_cond_t cond_signal_head;    // Condition variable for the storage manager thread
-extern pthread_cond_t cond_signal_tail;    // Condition variable for the sensor manager thread
-extern bool quit;                          // Flag to quit
+extern int fd[2];                  // pipe file descriptor
+extern sbuffer_t *sbuffer;         // Pointer to the shared buffer
+extern pthread_mutex_t mutex_pipe; // Mutex for the log file
+extern bool quit;                  // Flag to quit
 
 /*
  * Use ERROR_HANDLER() for handling memory allocation problems, invalid sensor IDs, non-existing files, etc.

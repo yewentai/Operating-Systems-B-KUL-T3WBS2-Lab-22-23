@@ -15,10 +15,6 @@
 #define SBUFFER_SUCCESS 0
 #define SBUFFER_NO_DATA 1
 
-extern pthread_mutex_t mutex_sbuffer_head;
-extern pthread_mutex_t mutex_sbuffer_tail;
-extern pthread_cond_t cond_signal_head;
-extern pthread_cond_t cond_signal_tail;
 typedef struct sbuffer sbuffer_t;
 typedef struct sbuffer_node sbuffer_node_t;
 

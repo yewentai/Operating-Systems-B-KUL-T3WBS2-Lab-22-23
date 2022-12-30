@@ -4,6 +4,11 @@
 
 #include "sbuffer.h"
 
+pthread_mutex_t mutex_pipe;         // Mutex for the log file
+pthread_mutex_t mutex_sbuffer_head; // Mutex for the shared buffer
+pthread_mutex_t mutex_sbuffer_tail; // Mutex for the shared buffer
+pthread_cond_t cond;                // Condition variable for the storage manager thread
+
 /**
  * basic node for the sbuffer, these nodes are linked together to create the sbuffer
  */
@@ -31,18 +36,21 @@ int sbuffer_init(sbuffer_t **sbuffer)
     (*sbuffer)->head = NULL;
     (*sbuffer)->tail = NULL;
     (*sbuffer)->count = 0;
+    pthread_cond_init(&cond, NULL);                // Initialize the condition variable
+    pthread_mutex_init(&mutex_sbuffer_head, NULL); // Initialize the mutex for the shared buffer
+    pthread_mutex_init(&mutex_sbuffer_tail, NULL); // Initialize the mutex for the shared buffer
     return SBUFFER_SUCCESS;
 }
 
 int sbuffer_free(sbuffer_t **sbuffer)
 {
-    sbuffer_node_t *dummy;
     if ((sbuffer == NULL) || (*sbuffer == NULL))
     {
         return SBUFFER_FAILURE;
     }
     while ((*sbuffer)->head)
     {
+        sbuffer_node_t *dummy;
         dummy = (*sbuffer)->head;
         (*sbuffer)->head = (*sbuffer)->head->next;
         free(dummy);
@@ -63,14 +71,12 @@ int sbuffer_remove(sbuffer_t *sbuffer, sensor_data_t *data)
     *data = sbuffer->head->data;
     pthread_mutex_lock(&mutex_sbuffer_head);
 
-    sbuffer_node_t *dummy;
-    dummy = sbuffer->head;
     if (sbuffer->head == sbuffer->tail) // sbuffer has only one node
         sbuffer->head = sbuffer->tail = NULL;
     else // sbuffer has many nodes empty
         sbuffer->head = sbuffer->head->next;
     sbuffer->count--;
-    pthread_cond_signal(&cond_signal_head);
+    pthread_cond_signal(&cond);
     pthread_mutex_unlock(&mutex_sbuffer_head);
     return SBUFFER_SUCCESS;
 }
@@ -84,7 +90,7 @@ int sbuffer_read(sbuffer_t *sbuffer, sensor_data_t *data)
         return SBUFFER_NO_DATA;
     }
     *data = sbuffer->head->data;
-    pthread_cond_wait(&cond_signal_head, &mutex_sbuffer_head);
+    pthread_cond_wait(&cond, &mutex_sbuffer_head);
     return SBUFFER_SUCCESS;
 }
 
@@ -111,9 +117,5 @@ int sbuffer_insert(sbuffer_t *sbuffer, sensor_data_t *data)
     }
     pthread_mutex_unlock(&mutex_sbuffer_tail);
     sbuffer->count++;
-    // if (sbuffer->count == 1)
-    // {
-    //     pthread_cond_signal(&cond_signal_head);
-    // }
     return SBUFFER_SUCCESS;
 }

@@ -1,102 +1,13 @@
-0 30/12/2022 18:03:11 A new data.csv file has been created.
-1 30/12/2022 18:03:13 Sensor node 37 has opened a new connection.
-2 30/12/2022 18:03:13 Data insertion from sensor 37 succeeded.
-3 30/12/2022 18:03:15 Data insertion from sensor 37 succeeded.
-4 30/12/2022 18:03:15 Sensor node 37 reports it is too hot((avg temp = 20.24)
-5 30/12/2022 18:03:15 Sensor node 21 has opened a new connection.
-6 30/12/2022 18:03:15 Data insertion from sensor 21 succeeded.
-7 30/12/2022 18:03:17 Data insertion from sensor 37 succeeded.
-8 30/12/2022 18:03:17 Sensor node 37 reports it is too hot((avg temp = 20.04)
-9 30/12/2022 18:03:19 Data insertion from sensor 37 succeeded.
-10 30/12/2022 18:03:19 Sensor node 37 reports it is too hot((avg temp = 20.27)
-11 30/12/2022 18:03:19 Data insertion from sensor 21 succeeded.
-12 30/12/2022 18:03:19 Sensor node 21 reports it is too hot((avg temp = 20.11)
-13 30/12/2022 18:03:21 Data insertion from sensor 37 succeeded.
-14 30/12/2022 18:03:21 Sensor node 37 reports it is too hot((avg temp = 20.15)
-15 30/12/2022 18:03:23 Data insertion from sensor 37 succeeded.
-16 30/12/2022 18:03:23 Sensor node 37 reports it is too hot((avg temp = 20.13)
-17 30/12/2022 18:03:23 Data insertion from sensor 21 succeeded.
-18 30/12/2022 18:03:23 Sensor node 21 reports it is too hot((avg temp = 20.11)
-19 30/12/2022 18:03:25 Data insertion from sensor 37 succeeded.
-20 30/12/2022 18:03:25 Sensor node 37 reports it is too hot((avg temp = 20.06)
-21 30/12/2022 18:03:27 Data insertion from sensor 37 succeeded.
-22 30/12/2022 18:03:27 Data insertion from sensor 21 succeeded.
-23 30/12/2022 18:03:27 Sensor node 21 reports it is too hot((avg temp = 20.10)
-24 30/12/2022 18:04:17 Data insertion from sensor 37 succeeded.
-25 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-26 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-27 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-28 30/12/2022 18:04:17 Received sensor data with invalid sensor node ID 0
-29 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-30 30/12/2022 18:04:17 Received sensor data with invalid sensor node ID 0
-31 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-32 30/12/2022 18:04:17 Received sensor data with invalid sensor node ID 0
-33 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-34 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-35 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-36 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-37 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-38 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-39 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-40 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-41 30/12/2022 18:04:17 Received sensor data with invalid sensor node ID 0
-42 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-43 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-44 30/12/2022 18:04:17 Received sensor data with invalid sensor node ID 0
-45 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-46 30/12/2022 18:04:17 Received sensor data with invalid sensor node ID 0
-47 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-48 30/12/2022 18:04:17 Received sensor data with invalid sensor node ID 0
-49 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-50 30/12/2022 18:04:17 Received sensor data with invalid sensor node ID 0
-51 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-52 30/12/2022 18:04:17 Received sensor data with invalid sensor node ID 0
-53 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-54 30/12/2022 18:04:17 Received sensor data with invalid sensor node ID 0
-55 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-56 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-57 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-58 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-59 30/12/2022 18:04:17 Received sensor data with invalid sensor node ID 0
-60 30/12/2022 18:04:17 Data insertion from sensor 21 succeeded.
-61 30/12/2022 18:04:17 Sensor node 21 reports it is too hot((avg temp = 20.16)
-62 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-63 30/12/2022 18:04:17 Received sensor data with invalid sensor node ID 0
-64 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-65 30/12/2022 18:04:17 Received sensor data with invalid sensor node ID 0
-66 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-67 30/12/2022 18:04:17 Received sensor data with invalid sensor node ID 0
-68 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-69 30/12/2022 18:04:17 Received sensor data with invalid sensor node ID 0
-70 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-71 30/12/2022 18:04:17 Received sensor data with invalid sensor node ID 0
-72 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-73 30/12/2022 18:04:17 Received sensor data with invalid sensor node ID 0
-74 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-75 30/12/2022 18:04:17 Received sensor data with invalid sensor node ID 0
-76 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-77 30/12/2022 18:04:17 Received sensor data with invalid sensor node ID 0
-78 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-79 30/12/2022 18:04:17 Received sensor data with invalid sensor node ID 0
-80 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-81 30/12/2022 18:04:17 Received sensor data with invalid sensor node ID 0
-82 30/12/2022 18:04:17 Received sensor data with invalid sensor node ID 0
-83 30/12/2022 18:04:17 Data insertion from sensor 0 succeeded.
-84 30/12/2022 18:04:19 Data insertion from sensor 0 succeeded.
-85 30/12/2022 18:04:19 Received sensor data with invalid sensor node ID 0
-86 30/12/2022 18:04:19 Data insertion from sensor 0 succeeded.
-87 30/12/2022 18:04:19 Received sensor data with invalid sensor node ID 0
-88 30/12/2022 18:04:21 Received sensor data with invalid sensor node ID 0
-89 30/12/2022 18:04:21 Data insertion from sensor 0 succeeded.
-90 30/12/2022 18:04:23 Data insertion from sensor 0 succeeded.
-91 30/12/2022 18:04:23 Received sensor data with invalid sensor node ID 0
-92 30/12/2022 18:04:23 Data insertion from sensor 0 succeeded.
-93 30/12/2022 18:04:23 Received sensor data with invalid sensor node ID 0
-94 30/12/2022 18:04:25 Data insertion from sensor 0 succeeded.
-95 30/12/2022 18:04:25 Received sensor data with invalid sensor node ID 0
-96 30/12/2022 18:04:27 Data insertion from sensor 0 succeeded.
-97 30/12/2022 18:04:27 Received sensor data with invalid sensor node ID 0
-98 30/12/2022 18:04:27 Data insertion from sensor 0 succeeded.
-99 30/12/2022 18:04:27 Received sensor data with invalid sensor node ID 0
-100 30/12/2022 18:04:29 Data insertion from sensor 0 succeeded.
-101 30/12/2022 18:04:29 Received sensor data with invalid sensor node ID 0
+0 30/12/2022 18:33:06 A new data.csv file has been created.
+1 30/12/2022 18:33:10 Sensor node 5 has opened a new connection.
+2 30/12/2022 18:33:10 Data insertion from sensor 5 succeeded.
+3 30/12/2022 18:33:11 Data insertion from sensor 5 succeeded.
+4 30/12/2022 18:33:12 Data insertion from sensor 5 succeeded.
+5 30/12/2022 18:33:12 Received sensor data with invalid sensor node ID 5
+6 30/12/2022 18:33:13 Data insertion from sensor 5 succeeded.
+7 30/12/2022 18:33:13 Received sensor data with invalid sensor node ID 5
+8 30/12/2022 18:33:14 Data insertion from sensor 5 succeeded.
+9 30/12/2022 18:33:14 Received sensor data with invalid sensor node ID 5
+10 30/12/2022 18:33:14 Sensor node 5 has closed the connection.
+11 30/12/2022 18:33:20 The data.csv file has been closed.
+12 30/12/2022 18:33:20 The gateway has been shut down.
