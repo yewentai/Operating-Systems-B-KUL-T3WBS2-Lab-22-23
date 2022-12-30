@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 #include <time.h>
+#include <stdbool.h>
 
 #define READ_END 0
 #define WRITE_END 1
@@ -30,6 +31,7 @@ typedef struct
     sensor_value_t value;
     sensor_value_t avg;
     sensor_ts_t ts;
+    bool valid;
 } my_element_t;
 
 #endif /* _CONFIG_H_ */

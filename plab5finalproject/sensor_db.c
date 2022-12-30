@@ -18,26 +18,28 @@ void *storagemgr()
     puts("[Storage manager] A new data.csv file has been created.");
 
     sensor_data_t *data = malloc(sizeof(sensor_data_t));
-    if (sbuffer_read(sbuffer, data) == SBUFFER_SUCCESS)
-    {
-        insert_sensor(csv, data);
-        pthread_mutex_lock(&mutex_pipe);
-        sprintf(log_msg, "Data insertion from sensor %d succeeded.", data->id);
-        write(fd[WRITE_END], log_msg, SIZE);
-        pthread_mutex_unlock(&mutex_pipe);
-        puts("[Storage manager] Data insertion from sensor succeeded.");
-    }
-    else
-    {
-        pthread_mutex_lock(&mutex_pipe);
-        sprintf(log_msg, "Data insertion from sensor failed.");
-        write(fd[WRITE_END], log_msg, SIZE);
-        pthread_mutex_unlock(&mutex_pipe);
-    }
     while (1)
     {
-        if (sbuffer_read(sbuffer, data) == SBUFFER_SUCCESS)
+        int ret_read = sbuffer_read(sbuffer, data);
+        if (ret_read == SBUFFER_SUCCESS)
+        {
             insert_sensor(csv, data);
+
+            pthread_mutex_lock(&mutex_pipe);
+            sprintf(log_msg, "Data insertion from sensor %d succeeded.", data->id);
+            write(fd[WRITE_END], log_msg, SIZE);
+            pthread_mutex_unlock(&mutex_pipe);
+            puts("[Storage manager] Data insertion from sensor succeeded.");
+        }
+        else if (ret_read == SBUFFER_NO_DATA)
+        {
+            pthread_mutex_lock(&mutex_pipe);
+            sprintf(log_msg, "No data to be read from the sbuffer.");
+            write(fd[WRITE_END], log_msg, SIZE);
+            pthread_mutex_unlock(&mutex_pipe);
+            puts("[Storage manager] No data to be read from the sbuffer.");
+            pthread_cond_wait(&cond_signal, &mutex_sbuffer);
+        }
         else
         {
             pthread_mutex_lock(&mutex_pipe);
@@ -47,10 +49,8 @@ void *storagemgr()
             break;
         }
     }
-
     close_db(csv); // Close sensor_data.csv
-
-    free(data);
+    free(data);    // Free the memory
     return NULL;
 }
 

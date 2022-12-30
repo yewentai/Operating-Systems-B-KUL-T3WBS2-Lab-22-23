@@ -21,6 +21,8 @@
 extern sbuffer_t *sbuffer;
 extern int fd[2]; // pipe file descriptor
 extern pthread_mutex_t mutex_pipe;
+extern pthread_mutex_t mutex_sbuffer;
+extern pthread_cond_t cond_signal;
 
 /**
  * The storage manager thread reads sensor measurements from the shared data buffer

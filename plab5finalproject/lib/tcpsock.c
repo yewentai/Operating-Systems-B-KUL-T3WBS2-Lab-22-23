@@ -216,6 +216,9 @@ int tcp_receive(tcpsock_t *socket, void *buffer, int *buf_size)
     TCP_ERR_HANDLER((*buf_size < 0) && (errno == ENOTCONN), return TCP_CONNECTION_CLOSED);
     TCP_DEBUG_PRINTF(*buf_size < 0, "Recv() failed with errno = %d [%s]", errno, strerror(errno));
     TCP_ERR_HANDLER(*buf_size < 0, return TCP_SOCKOP_ERROR);
+    // add your code here
+    TCP_DEBUG_PRINTF((*buf_size == -1) && (errno == EAGAIN), "Recv() timed out\n");
+    TCP_ERR_HANDLER((*buf_size == -1) && (errno == EAGAIN), return TCP_CONNECTION_CLOSED);
     return TCP_NO_ERROR;
 }
 

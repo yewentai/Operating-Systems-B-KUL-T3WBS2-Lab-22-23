@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <stdbool.h>
-#include "sensor_db.h"
 #include "config.h"
 
 #ifndef _SBUFFER_H_
@@ -16,6 +15,8 @@
 #define SBUFFER_SUCCESS 0
 #define SBUFFER_NO_DATA 1
 
+extern pthread_mutex_t mutex_sbuffer;
+extern pthread_cond_t cond_signal;
 typedef struct sbuffer sbuffer_t;
 typedef struct sbuffer_node sbuffer_node_t;
 

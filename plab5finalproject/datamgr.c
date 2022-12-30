@@ -14,31 +14,30 @@ void *datamgr()
      *********************************************************************/
     // open "room_sensor.map" and get the lines of the file
     FILE *fp = fopen("room_sensor.map", "r");
-    int m = 0;
-    int n = 2;
+    int num_room = 0; // the number of lines in the file
+    int num_col = 2;  // the number of columns in the file
     char mid;
     while (!feof(fp))
     {
         mid = fgetc(fp); // get the character
         if (mid == '\n') // if the character is map new line
-            m++;         // increase the line count
+            num_room++;  // increase the line count
     }
     rewind(fp); // set the file pointer to the beginning of the file
     // allocate the memory for the map array
     int **map;
-    map = (int **)malloc(sizeof(int *) * m);
-    for (int i = 0; i < m; i++)
-        map[i] = (int *)malloc(sizeof(int) * n);
+    map = (int **)malloc(sizeof(int *) * num_room);
+    for (int i = 0; i < num_room; i++)
+        map[i] = (int *)malloc(sizeof(int) * num_col);
     // read the data from the file
-    for (int i = 0; i < m; i++)
+    for (int i = 0; i < num_room; i++)
     {
-        for (int j = 0; j < n; j++)
+        for (int j = 0; j < num_col; j++)
         {
             fscanf(fp, "%d", &map[i][j]);
         }
     }
     fclose(fp);
-    puts("[Data manager] The room_sensor array has been created.");
 
     /*********************************
      * insert the data into the dplist
@@ -47,49 +46,61 @@ void *datamgr()
     list = dpl_create(element_copy, element_free, element_compare);
     my_element_t *element = malloc(sizeof(my_element_t));
     sensor_data_t *data = malloc(sizeof(sensor_data_t));
-    while (sbuffer_remove(sbuffer, data) == SBUFFER_SUCCESS)
+    while (1)
     {
-        puts("[Data manager] Data has been removed from the sbuffer.");
-        element->sensor_id = data->id;
-        element->value = data->value;
-        element->avg = datamgr_get_avg(data->id, list);
-        element->ts = data->ts;
-        dpl_insert_at_index(list, element, 0, true);
-
-        /*******************************************************
-         * check the data just inserted and write the log message
-         *******************************************************/
-        // check if the sensor node ID is valid
-        bool flag_sensor_id_right = false;
-        for (int i = 0; i < m; i++)
+        int ret_remove = sbuffer_remove(sbuffer, data);
+        if (ret_remove == SBUFFER_SUCCESS)
         {
-            if (map[i][1] == data->id)
+            puts("[Data manager] Data has been removed from the sbuffer.");
+            element->sensor_id = data->id;
+            element->value = data->value;
+            element->avg = datamgr_get_avg(data->id, list);
+            element->ts = data->ts;
+            element->valid = false;
+            /*******************************************************
+             * check the data just inserted and write the log message
+             *******************************************************/
+            // check if the sensor node ID is valid
+            for (int i = 0; i < num_room; i++)
             {
-                flag_sensor_id_right = true;
-                break;
+                if (map[i][1] == data->id)
+                {
+                    element->valid = true;
+                    dpl_insert_at_index(list, element, 0, true);
+                    // check if the temperature is out of range
+                    if (element->avg > SET_MAX_TEMP)
+                    {
+                        pthread_mutex_lock(&mutex_pipe);
+                        sprintf(log_msg, "Sensor node %d reports it is too hot((avg temp = %0.2lf)", element->sensor_id, element->avg);
+                        write(fd[WRITE_END], log_msg, SIZE);
+                        pthread_mutex_unlock(&mutex_pipe);
+                    }
+                    else if (element->avg < SET_MIN_TEMP)
+                    {
+                        pthread_mutex_lock(&mutex_pipe);
+                        sprintf(log_msg, "Sensor node %d reports it is too cold((avg temp = %0.2lf)", element->sensor_id, element->avg);
+                        write(fd[WRITE_END], log_msg, SIZE);
+                        pthread_mutex_unlock(&mutex_pipe);
+                    }
+                    break;
+                }
+            }
+            if (element->valid == false)
+            {
+                pthread_mutex_lock(&mutex_pipe);
+                sprintf(log_msg, "Received sensor data with invalid sensor node ID %d", data->id);
+                write(fd[WRITE_END], log_msg, SIZE);
+                pthread_mutex_unlock(&mutex_pipe);
             }
         }
-        if (flag_sensor_id_right == false)
+        else if (ret_remove == SBUFFER_NO_DATA)
         {
-            pthread_mutex_lock(&mutex_pipe);
-            sprintf(log_msg, "Received sensor data with invalid sensor node ID %d", data->id);
-            write(fd[WRITE_END], log_msg, strlen(log_msg));
-            pthread_mutex_unlock(&mutex_pipe);
+            puts("[Data manager] No data in the sbuffer.");
+            pthread_cond_wait(&cond_signal, &mutex_sbuffer);
         }
-        // check if the temperature is out of range
-        if (element->avg > SET_MAX_TEMP)
+        else if (ret_remove == SBUFFER_FAILURE)
         {
-            pthread_mutex_lock(&mutex_pipe);
-            sprintf(log_msg, "Sensor node %d reports it is too cold((avg temp = %0.2lf)", element->sensor_id, element->avg);
-            write(fd[WRITE_END], log_msg, strlen(log_msg));
-            pthread_mutex_unlock(&mutex_pipe);
-        }
-        else if (element->avg < SET_MIN_TEMP)
-        {
-            pthread_mutex_lock(&mutex_pipe);
-            sprintf(log_msg, "Sensor node %d reports it is too hot((avg temp = %0.2lf)", element->sensor_id, element->avg);
-            write(fd[WRITE_END], log_msg, strlen(log_msg));
-            pthread_mutex_unlock(&mutex_pipe);
+            puts("[Data manager] Failed to remove data from the sbuffer.");
         }
     }
     free(element);
@@ -102,9 +113,9 @@ void datamgr_free(dplist_t *list)
     dpl_free(&list, true);
 }
 
-uint16_t datamgr_get_room_id(sensor_id_t sensor_id, int **map, int m)
+uint16_t datamgr_get_room_id(sensor_id_t sensor_id, int **map, int num_room)
 {
-    for (int i = 0; i < m; i++)
+    for (int i = 0; i < num_room; i++)
     {
         if (map[i][1] == sensor_id)
             return map[i][0];
@@ -117,7 +128,16 @@ sensor_value_t datamgr_get_avg(sensor_id_t sensor_id, dplist_t *list)
     sensor_value_t avg = 0;
     int count = 0;
     if (dpl_size(list) <= 5)
-        return 0;
+    {
+        for (int i = 0; i < dpl_size(list); i++)
+        {
+            if (((my_element_t *)dpl_get_element_at_index(list, i))->sensor_id == sensor_id)
+            {
+                return ((my_element_t *)dpl_get_element_at_index(list, i))->value;
+            }
+        }
+    }
+
     for (int i = 0; i < dpl_size(list); i++)
     {
         if (((my_element_t *)dpl_get_element_at_index(list, i))->sensor_id == sensor_id)
