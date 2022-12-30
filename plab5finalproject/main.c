@@ -14,7 +14,7 @@
 #include "sensor_db.h"
 #include "sbuffer.h"
 
-int num_conn = 0;           // Number of connections
+int cur_conn = 0;           // Number of current connections
 bool quit = false;          // Flag for the main process to quit
 sbuffer_t *sbuffer = NULL;  // Shared buffer
 int fd[2];                  // Pipe between parent and child process(logger)
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
         time(&tik);
         while (1)
         {
-            if (num_conn != 0)
+            if (cur_conn != 0)
             {
                 time(&tik);
             }

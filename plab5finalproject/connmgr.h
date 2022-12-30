@@ -22,10 +22,10 @@
 #endif
 
 #ifndef MAX_CONN
-#define MAX_CONN 3 // state the max number of connections the server will handle
+#define MAX_CONN 2
 #endif
 
-extern int num_conn;               // Number of connections
+extern int cur_conn;               // Number of connections
 extern int fd[2];                  // File descriptor for the pipe
 extern sbuffer_t *sbuffer;         // Shared buffer
 extern pthread_mutex_t mutex_pipe; // Mutex for the log file

@@ -4,42 +4,42 @@
 
 #include "connmgr.h"
 
-static char log_msg[SIZE];     // Message to be sent to the child process
+static char tmsg[SIZE];        // Message to be sent to the child process
 static struct timeval timeout; // Timeout for select()
 
 void *connmgr(void *port_void)
 {
+        int tol_conn = 0;             // Number of total connections
         tcpsock_t *server, *client;   // Server and client socket
         int port = *(int *)port_void; // Port number
         pthread_t tid[MAX_CONN];      // Thread ID
         timeout.tv_sec = TIMEOUT;     // Timeout for tcp_receive()
         timeout.tv_usec = 0;          // Timeout for tcp_receive()
-        int tol_conn = 0;             // The total number of connections
         if (tcp_passive_open(&server, port) != TCP_NO_ERROR)
                 exit(EXIT_FAILURE);
         puts("[Connection manager] Connection manager Started!");
 
-        do
+        while (tol_conn <= MAX_CONN)
         {
                 if (tcp_wait_for_connection(server, &client) != TCP_NO_ERROR)
                         exit(EXIT_FAILURE);
-                num_conn++; // The number of connections
+                cur_conn++; // The number of connections
                 tol_conn++; // The total number of connections
                 puts("[Connection manager] A new connection is established.");
 
-                if (pthread_create(tid + num_conn, NULL, connmgr_listen, client) != 0)
+                if (pthread_create(tid + cur_conn, NULL, connmgr_listen, client) != 0)
                 {
                         perror("pthread_create()");
                         exit(EXIT_FAILURE);
                 }
-        } while (tol_conn < MAX_CONN);
+        }
 
         if (tcp_close(&server) != TCP_NO_ERROR) // Close the server socket
                 exit(EXIT_FAILURE);
         puts("[Connection manager] Connection manager is terminated.");
-        for (int i = 0; i < num_conn; i++) // Wait for all threads to finish
+        for (int i = 0; i < tol_conn; i++) // Wait for all threads to finish
                 pthread_join(tid[i], NULL);
-        return NULL;
+        pthread_exit(NULL);
 }
 
 void *connmgr_listen(void *p_client)
@@ -68,8 +68,8 @@ void *connmgr_listen(void *p_client)
         {
                 // write data to sbuffer
                 pthread_mutex_lock(&mutex_pipe);
-                sprintf(log_msg, "Sensor node %d has opened a new connection.", data.id);
-                write(fd[WRITE_END], log_msg, SIZE);
+                sprintf(tmsg, "Sensor node %d has opened a new connection.", data.id);
+                write(fd[WRITE_END], tmsg, SIZE);
                 pthread_mutex_unlock(&mutex_pipe);
                 sbuffer_insert(sbuffer, &data);
 
@@ -100,16 +100,16 @@ void *connmgr_listen(void *p_client)
         if (result == TCP_SOCKET_ERROR)
         {
                 pthread_mutex_lock(&mutex_pipe);
-                sprintf(log_msg, "Error occured on connection to peer!");
-                write(fd[WRITE_END], log_msg, SIZE);
+                sprintf(tmsg, "Error occured on connection to peer!");
+                write(fd[WRITE_END], tmsg, SIZE);
                 pthread_mutex_unlock(&mutex_pipe);
         }
         else if (result == TCP_CONNECTION_CLOSED)
         {
-                num_conn--;
+                cur_conn--;
                 pthread_mutex_lock(&mutex_pipe);
-                sprintf(log_msg, "Sensor node %d has closed the connection.", data.id);
-                write(fd[WRITE_END], log_msg, SIZE);
+                sprintf(tmsg, "Sensor node %d has closed the connection.", data.id);
+                write(fd[WRITE_END], tmsg, SIZE);
                 pthread_mutex_unlock(&mutex_pipe);
                 tcp_close(&client);
                 puts("[Connection manager] A connection is closed.");

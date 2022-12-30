@@ -9,9 +9,9 @@
 #include <time.h>
 #include <stdbool.h>
 
-#define READ_END 0
-#define WRITE_END 1
-#define SIZE 1024
+#define READ_END 0  // The read end of the pipe
+#define WRITE_END 1 // The write end of the pipe
+#define SIZE 1024   // The size of the pipe buffer
 
 typedef uint16_t sensor_id_t;
 typedef double sensor_value_t;
