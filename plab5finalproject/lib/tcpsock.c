@@ -159,7 +159,6 @@ int tcp_wait_for_connection(tcpsock_t *socket, tcpsock_t **new_socket)
     tcpsock_t *s;
     unsigned int length = sizeof(struct sockaddr_in);
     char *p;
-
     TCP_ERR_HANDLER(socket == NULL, return TCP_SOCKET_ERROR);
     TCP_ERR_HANDLER(socket->cookie != MAGIC_COOKIE, return TCP_SOCKET_ERROR);
     s = tcp_sock_create();

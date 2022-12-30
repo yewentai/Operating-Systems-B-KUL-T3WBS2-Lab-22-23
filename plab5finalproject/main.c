@@ -15,6 +15,7 @@
 #include "sbuffer.h"
 
 int num_conn = 0;                   // Number of connections
+bool quit = false;                  // Flag for the main process to quit
 sbuffer_t *sbuffer = NULL;          // Shared buffer
 pthread_mutex_t mutex_pipe;         // Mutex for the log file
 pthread_mutex_t mutex_sbuffer_head; // Mutex for the shared buffer
@@ -25,7 +26,6 @@ int fd[2];                          // Pipe between parent and child process(log
 static int seq = 0;                 // Sequence number of the log file
 static char log_rmsg[SIZE];         // Message recieved from the pipe
 static char log_tmsg[SIZE];         // Message to be sent to the pipe
-bool quit = false;                  // Flag for the main process to quit
 
 void append_log(char *msg);
 

@@ -30,7 +30,7 @@ void *connmgr(void *port_void)
                         perror("pthread_create()");
                         exit(EXIT_FAILURE);
                 }
-        } while (num_conn < MAX_CONN);
+        } while (num_conn < MAX_CONN && !quit);
 
         if (tcp_close(&server) != TCP_NO_ERROR) // Close the server socket
                 exit(EXIT_FAILURE);
