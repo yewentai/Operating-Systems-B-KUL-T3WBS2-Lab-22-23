@@ -33,8 +33,8 @@ void *storagemgr()
     sensor_data_t *data = malloc(sizeof(sensor_data_t));
     while (1)
     {
-        int ret_read = sbuffer_remove(sbuffer, data);
-        if (ret_read == SBUFFER_SUCCESS)
+        int ret_remove = sbuffer_remove(sbuffer, data);
+        if (ret_remove == SBUFFER_SUCCESS)
         {
             insert_sensor(csv, data);
             pthread_mutex_lock(&mutex_pipe);
@@ -43,7 +43,7 @@ void *storagemgr()
             pthread_mutex_unlock(&mutex_pipe);
             puts("[Storage manager] Data insertion from sensor succeeded.");
         }
-        else if (ret_read == SBUFFER_NO_DATA)
+        else if (ret_remove == SBUFFER_NO_DATA)
         {
             // pthread_cond_wait(&cond_signal_tail, &mutex_sbuffer_head);
             // sleep(1);

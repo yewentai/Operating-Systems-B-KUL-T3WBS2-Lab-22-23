@@ -47,8 +47,8 @@ void *datamgr()
     sensor_data_t *data = malloc(sizeof(sensor_data_t));
     while (1)
     {
-        int ret_remove = sbuffer_read(sbuffer, data);
-        if (ret_remove == SBUFFER_SUCCESS)
+        int ret_read = sbuffer_read(sbuffer, data);
+        if (ret_read == SBUFFER_SUCCESS)
         {
             puts("[Data manager] Data has been removed from the sbuffer.");
             element->sensor_id = data->id;
@@ -92,12 +92,12 @@ void *datamgr()
                 pthread_mutex_unlock(&mutex_pipe);
             }
         }
-        else if (ret_remove == SBUFFER_NO_DATA)
+        else if (ret_read == SBUFFER_NO_DATA)
         {
             // pthread_cond_wait(&cond_signal_tail, &mutex_sbuffer_head);
             // sleep(1);
         }
-        else if (ret_remove == SBUFFER_FAILURE)
+        else if (ret_read == SBUFFER_FAILURE)
         {
             puts("[Data manager] Failed to remove data from the sbuffer.");
         }

@@ -114,15 +114,15 @@ int main(int argc, char *argv[])
     { // Parent process
         close(fd[READ_END]);
         time_t tik;
-        time(&tik);
+        time(&tik); // Record the time of gataway startup
         while (1)
         {
             if (cur_conn != 0)
             {
-                time(&tik);
+                time(&tik); // Record the time of the last connection
             }
             else if (time(NULL) - tik > TIMEOUT)
-            {
+            { // If no connection for TIME_OUT seconds, shutdown the gateway
                 quit = true;
                 pthread_cancel(tid_connmgr);
                 break;
@@ -137,6 +137,7 @@ int main(int argc, char *argv[])
         write(fd[WRITE_END], log_tmsg, SIZE);
         pthread_mutex_unlock(&mutex_pipe);
         close(fd[WRITE_END]);
+        sbuffer_free(&sbuffer);
         wait(NULL);
     }
     exit(EXIT_SUCCESS);

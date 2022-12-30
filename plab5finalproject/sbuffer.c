@@ -49,7 +49,7 @@ int sbuffer_free(sbuffer_t **sbuffer)
         return SBUFFER_FAILURE;
     }
     while ((*sbuffer)->head)
-    {
+    { // free all nodes
         sbuffer_node_t *dummy;
         dummy = (*sbuffer)->head;
         (*sbuffer)->head = (*sbuffer)->head->next;
@@ -76,7 +76,7 @@ int sbuffer_remove(sbuffer_t *sbuffer, sensor_data_t *data)
     else // sbuffer has many nodes empty
         sbuffer->head = sbuffer->head->next;
     sbuffer->count--;
-    pthread_cond_signal(&cond);
+    pthread_cond_signal(&cond); // Signal the condition variable
     pthread_mutex_unlock(&mutex_sbuffer_head);
     return SBUFFER_SUCCESS;
 }
@@ -86,11 +86,9 @@ int sbuffer_read(sbuffer_t *sbuffer, sensor_data_t *data)
     if (sbuffer == NULL)
         return SBUFFER_FAILURE;
     if (sbuffer->head == NULL)
-    {
         return SBUFFER_NO_DATA;
-    }
     *data = sbuffer->head->data;
-    pthread_cond_wait(&cond, &mutex_sbuffer_head);
+    pthread_cond_wait(&cond, &mutex_sbuffer_head); // Wait for the condition variable
     return SBUFFER_SUCCESS;
 }
 
