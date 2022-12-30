@@ -14,18 +14,15 @@
 #include "sensor_db.h"
 #include "sbuffer.h"
 
-int num_conn = 0;                   // Number of connections
-sbuffer_t *sbuffer = NULL;          // Shared buffer
-pthread_mutex_t mutex_pipe;         // Mutex for the log file
-pthread_mutex_t mutex_sbuffer_head; // Mutex for the shared buffer
-pthread_mutex_t mutex_sbuffer_tail; // Mutex for the shared buffer
-pthread_cond_t cond_signal_head;    // Condition variable for the storage manager thread
-pthread_cond_t cond_signal_tail;    // Condition variable for the sensor manager thread
-int fd[2];                          // Pipe between parent and child process(logger)
-static int seq = 0;                 // Sequence number of the log file
-static char log_rmsg[SIZE];         // Message recieved from the pipe
-static char log_tmsg[SIZE];         // Message to be sent to the pipe
-bool quit = false;                  // Flag for the main process to quit
+int num_conn = 0;              // Number of connections
+sbuffer_t *sbuffer = NULL;     // Shared buffer
+pthread_mutex_t mutex_pipe;    // Mutex for the log file
+pthread_mutex_t mutex_sbuffer; // Mutex for the shared buffer
+pthread_cond_t cond_signal;    // Condition variable for the storage manager thread
+int fd[2];                     // Pipe between parent and child process(logger)
+static int seq = 0;            // Sequence number of the log file
+static char log_rmsg[SIZE];    // Message recieved from the pipe
+static char log_tmsg[SIZE];    // Message to be sent to the pipe
 
 void append_log(char *msg);
 
@@ -50,11 +47,9 @@ int main(int argc, char *argv[])
     /**********************************************************************
      *A shared data structure is used for communication between all threads.
      ***********************************************************************/
-    sbuffer_init(&sbuffer);                        // Initialize the shared buffer
-    pthread_cond_init(&cond_signal_head, NULL);    // Initialize the condition variable
-    pthread_cond_init(&cond_signal_tail, NULL);    // Initialize the condition variable
-    pthread_mutex_init(&mutex_sbuffer_head, NULL); // Initialize the mutex for the shared buffer
-    pthread_mutex_init(&mutex_sbuffer_tail, NULL); // Initialize the mutex for the shared buffer
+    sbuffer_init(&sbuffer);                   // Initialize the shared buffer
+    pthread_cond_init(&cond_signal, NULL);    // Initialize the condition variable
+    pthread_mutex_init(&mutex_sbuffer, NULL); // Initialize the mutex for the shared buffer
 
     /****************************************************************************************
      * The sensor gateway consists of a main process and a log process.
@@ -78,7 +73,7 @@ int main(int argc, char *argv[])
         perror("pthread_create()");
         exit(EXIT_FAILURE);
     }
-    sleep(4);
+    sleep(3);
     if (pthread_create(&tid_datamgr, NULL, datamgr, NULL) != 0)
     {
         perror("pthread_create()");
@@ -129,7 +124,13 @@ int main(int argc, char *argv[])
         {
             if (time(NULL) - tik > TIMEOUT && num_conn == 0)
             {
-                quit = true;
+                pthread_mutex_lock(&mutex_pipe);
+                sprintf(log_tmsg, "The gateway has been shut down.");
+                write(fd[WRITE_END], log_tmsg, SIZE);
+                pthread_mutex_unlock(&mutex_pipe);
+                pthread_cancel(tid_connmgr);
+                pthread_cancel(tid_datamgr);
+                pthread_cancel(tid_storagemgr);
                 break;
             }
         }
@@ -139,10 +140,6 @@ int main(int argc, char *argv[])
         close(fd[WRITE_END]);
         wait(NULL);
     }
-    pthread_mutex_lock(&mutex_pipe);
-    sprintf(log_tmsg, "The gateway has been shut down.");
-    write(fd[WRITE_END], log_tmsg, SIZE);
-    pthread_mutex_unlock(&mutex_pipe);
     exit(EXIT_SUCCESS);
 }
 

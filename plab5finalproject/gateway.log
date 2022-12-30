@@ -1,3 +1,5 @@
-0 30/12/2022 10:42:59 A new data.csv file has been created.
-1 30/12/2022 10:42:59 No data to be read from the sbuffer.
-2 30/12/2022 10:43:05 The gateway has been shut down.
+0 30/12/2022 16:04:14 Sensor node 15 has opened a new connection.
+1 30/12/2022 16:04:14 Sensor node 15 has closed the connection.
+2 30/12/2022 16:04:14 A new data.csv file has been created.
+3 30/12/2022 16:04:14 Data insertion from sensor 15 succeeded.
+4 30/12/2022 16:04:20 The data.csv file has been closed.

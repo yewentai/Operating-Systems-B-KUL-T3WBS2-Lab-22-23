@@ -1,0 +1,19 @@
+{
+    "files.associations": {
+        "inttypes.h": "c",
+        "connmgr.h": "c",
+        "type_traits": "c",
+        "stdio.h": "c",
+        "tcpsock.h": "c",
+        "logger.h": "c",
+        "sbuffer.h": "c",
+        "stdlib.h": "c",
+        "string.h": "c",
+        "errno.h": "c",
+        "config.h": "c",
+        "dplist.h": "c",
+        "datamgr.h": "c",
+        "sensor_db.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "disabled"
+}

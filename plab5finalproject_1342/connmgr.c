@@ -4,25 +4,26 @@
 
 #include "connmgr.h"
 
-static char log_msg[SIZE];     // Message to be sent to the child process
-static struct timeval timeout; // Timeout for select()
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; // Mutex for the number of connections
+static char log_msg[SIZE];                         // Message to be sent to the child process
+struct timeval timeout;                            // Timeout for select()
+void *connmgr_listen(void *p_client);
 
 void *connmgr(void *port_void)
 {
-        tcpsock_t *server, *client;   // Server and client socket
         int port = *(int *)port_void; // Port number
         pthread_t tid[MAX_CONN];      // Thread ID
+        tcpsock_t *server, *client;   // Server and client socket
         timeout.tv_sec = TIMEOUT;     // Timeout for tcp_receive()
         timeout.tv_usec = 0;
         if (tcp_passive_open(&server, port) != TCP_NO_ERROR)
                 exit(EXIT_FAILURE);
         puts("[Connection manager] Connection manager Started!");
-
         do
         {
                 if (tcp_wait_for_connection(server, &client) != TCP_NO_ERROR)
                         exit(EXIT_FAILURE);
-                num_conn++; // The number of connections
+                num_conn++; // the number of connections (also the number of corresponding threads)
                 puts("[Connection manager] A new connection is established.");
 
                 if (pthread_create(tid + num_conn, NULL, connmgr_listen, client) != 0)
@@ -47,9 +48,9 @@ void *connmgr_listen(void *p_client)
         int sd;                                                                     // Socket descriptor
         tcp_get_sd(client, &sd);                                                    // Socket descriptor
         setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)); // Set timeout for tcp_receive()
-        sensor_data_t data;                                                         // Data to be received from the client
+        sensor_data_t data;                                                         // Data to be received from the child process
         int bytes = 0;                                                              // Number of bytes received
-        int result = TCP_NO_ERROR;                                                  // Result of tcp_receive()
+        int result = TCP_NO_ERROR;                                                  // Result of the tcp_receive function
 
         /*****************************************
          * Read first data from the client socket
@@ -63,6 +64,7 @@ void *connmgr_listen(void *p_client)
         // read timestamp
         bytes = sizeof(data.ts);
         result = tcp_receive(client, (void *)&data.ts, &bytes);
+        data.used = false;
         if (result == TCP_NO_ERROR)
         {
                 // write data to sbuffer
@@ -89,6 +91,7 @@ void *connmgr_listen(void *p_client)
                         bytes = sizeof(data.ts);
                         result = tcp_receive(client, (void *)&data.ts, &bytes);
                         // write data to sbuffer
+                        sbuffer_insert(sbuffer, &data);
                         if (result == TCP_NO_ERROR)
                                 sbuffer_insert(sbuffer, &data);
                         else

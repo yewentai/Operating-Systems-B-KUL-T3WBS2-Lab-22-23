@@ -4,7 +4,7 @@
 
 #include "datamgr.h"
 
-static char tmsg[SIZE]; // Message to be received from the child process
+static char log_msg[SIZE]; // Message to be received from the child process
 
 void *datamgr()
 {
@@ -47,7 +47,7 @@ void *datamgr()
     sensor_data_t *data = malloc(sizeof(sensor_data_t));
     while (1)
     {
-        int ret_remove = sbuffer_read(sbuffer, data);
+        int ret_remove = sbuffer_remove(sbuffer, data);
         if (ret_remove == SBUFFER_SUCCESS)
         {
             puts("[Data manager] Data has been removed from the sbuffer.");
@@ -70,15 +70,15 @@ void *datamgr()
                     if (element->avg > SET_MAX_TEMP)
                     {
                         pthread_mutex_lock(&mutex_pipe);
-                        sprintf(tmsg, "Sensor node %d reports it is too hot((avg temp = %0.2lf)", element->sensor_id, element->avg);
-                        write(fd[WRITE_END], tmsg, SIZE);
+                        sprintf(log_msg, "Sensor node %d reports it is too hot((avg temp = %0.2lf)", element->sensor_id, element->avg);
+                        write(fd[WRITE_END], log_msg, SIZE);
                         pthread_mutex_unlock(&mutex_pipe);
                     }
                     else if (element->avg < SET_MIN_TEMP)
                     {
                         pthread_mutex_lock(&mutex_pipe);
-                        sprintf(tmsg, "Sensor node %d reports it is too cold((avg temp = %0.2lf)", element->sensor_id, element->avg);
-                        write(fd[WRITE_END], tmsg, SIZE);
+                        sprintf(log_msg, "Sensor node %d reports it is too cold((avg temp = %0.2lf)", element->sensor_id, element->avg);
+                        write(fd[WRITE_END], log_msg, SIZE);
                         pthread_mutex_unlock(&mutex_pipe);
                     }
                     break; // break the loop if the sensor node ID is valid
@@ -87,22 +87,20 @@ void *datamgr()
             if (element->valid == false)
             {
                 pthread_mutex_lock(&mutex_pipe);
-                sprintf(tmsg, "Received sensor data with invalid sensor node ID %d", data->id);
-                write(fd[WRITE_END], tmsg, SIZE);
+                sprintf(log_msg, "Received sensor data with invalid sensor node ID %d", data->id);
+                write(fd[WRITE_END], log_msg, SIZE);
                 pthread_mutex_unlock(&mutex_pipe);
             }
         }
         else if (ret_remove == SBUFFER_NO_DATA)
         {
-            // pthread_cond_wait(&cond_signal_tail, &mutex_sbuffer_head);
-            // sleep(1);
+            puts("[Data manager] No data in the sbuffer.");
+            pthread_cond_wait(&cond_signal, &mutex_sbuffer);
         }
         else if (ret_remove == SBUFFER_FAILURE)
         {
             puts("[Data manager] Failed to remove data from the sbuffer.");
         }
-        if (quit == true)
-            break;
     }
     free(element);
     datamgr_free(list);
