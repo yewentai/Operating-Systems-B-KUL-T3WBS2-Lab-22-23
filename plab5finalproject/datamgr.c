@@ -12,15 +12,14 @@ void *datamgr()
     /*********************************************************************
      * Create a two-dimensional array to store the room_sensor information
      *********************************************************************/
-    // open "room_sensor.map" and get the lines of the file
-    FILE *fp = fopen("room_sensor.map", "r");
-    int num_room = 0; // the number of lines in the file
-    int num_col = 2;  // the number of columns in the file
-    char mid;
-    while (!feof(fp))
+    FILE *fp = fopen("room_sensor.map", "r"); // open "room_sensor.map"
+    int num_room = 0;                         // the number of lines in the file
+    int num_col = 2;                          // the number of columns in the file
+    char tmp;
+    while (!feof(fp)) // get the lines of the file
     {
-        mid = fgetc(fp); // get the character
-        if (mid == '\n') // if the character is map new line
+        tmp = fgetc(fp); // get the character
+        if (tmp == '\n') // if the character is map new line
             num_room++;  // increase the line count
     }
     rewind(fp); // set the file pointer to the beginning of the file
@@ -41,7 +40,7 @@ void *datamgr()
 
     /*********************************
      * insert the data into the dplist
-     * *******************************/
+     *********************************/
     dplist_t *list = NULL;
     list = dpl_create(element_copy, element_free, element_compare);
     my_element_t *element = malloc(sizeof(my_element_t));
@@ -82,7 +81,7 @@ void *datamgr()
                         write(fd[WRITE_END], log_msg, SIZE);
                         pthread_mutex_unlock(&mutex_pipe);
                     }
-                    break;
+                    break; // break the loop if the sensor node ID is valid
                 }
             }
             if (element->valid == false)
