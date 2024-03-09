@@ -54,3 +54,5 @@ dkms.conf
 *.map
 *.csv
 *.log
+
+.DS_Store
