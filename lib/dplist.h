@@ -1,59 +1,21 @@
 /**
- * \author {JUNCHENG ZHU}
+ * \author Wentai Ye
  */
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
 #include <stdbool.h>
-#include "../config.h"
 
 #ifndef _DPLIST_H_
 #define _DPLIST_H_
 
-#ifndef RUN_AVG_LENGTH
-#define RUN_AVG_LENGTH 5
-#endif
-
-
-/*
-typedef enum {
-    false, true
-} bool; // or use C99 #include <stdbool.h>
-*/
-
 /**
  * dplist_t is a struct containing at least a head pointer to the start of the list;
  */
-
-
-typedef struct{
-	room_id_t room_id;
-	sensor_id_t sensor_id;
-	sensor_value_t running_avg;
-	sensor_ts_t last_modified;
-	sensor_value_t data_list[RUN_AVG_LENGTH];
-}sensor_node_t;
-
 typedef struct dplist dplist_t;
 
 typedef struct dplist_node dplist_node_t;
-
-struct dplist_node {
-    dplist_node_t *prev, *next;
-    void *element;
-};
-
-struct dplist {
-    dplist_node_t *head;
-
-    void *(*element_copy)(void *src_element);
-
-    void (*element_free)(void **element);
-
-    int (*element_compare)(void *x, void *y);
-};
-
-int element_compare(void *x, void* y);
-void element_free(void** element);
-void* element_copy(void* element);
 
 /* General remark on error handling
  * All functions below will:
@@ -67,10 +29,9 @@ void* element_copy(void* element);
  * \return a pointer to a newly-allocated and initialized list.
  */
 dplist_t *dpl_create(
-        void* (*element_copy)(void *element),
-        void (*element_free)(void **element),
-        int (*element_compare)(void *x, void *y)
-);
+    void *(*element_copy)(void *element),
+    void (*element_free)(void **element),
+    int (*element_compare)(void *x, void *y));
 
 /** Deletes all elements in the list
  * - Every list node of the list needs to be deleted. (free memory)
@@ -159,5 +120,4 @@ int dpl_get_index_of_element(dplist_t *list, void *element);
  */
 void *dpl_get_element_at_reference(dplist_t *list, dplist_node_t *reference);
 
-#endif  // _DPLIST_H_
-
+#endif // _DPLIST_H_

@@ -1,98 +1,60 @@
 /**
- * \author Juncheng Zhu
+ * \author Wentai Ye
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <assert.h>
-#include <stdbool.h>
 #include "dplist.h"
-#include "../datamgr.h"
 
-/*
- * definition of error codes
- */
-#define DPLIST_NO_ERROR 0
-#define DPLIST_MEMORY_ERROR 1 // error due to mem alloc failure
-#define DPLIST_INVALID_ERROR 2 //error due to a list operation applied on a NULL list 
+// definition of error codes
+#define DPLIST_NO_ERROR 0      // no error
+#define DPLIST_MEMORY_ERROR 1  // error due to mem alloc failure
+#define DPLIST_INVALID_ERROR 2 // error due to a list operation applied on a NULL list
 
+// definition of error messages
 #ifdef DEBUG
-#define DEBUG_PRINTF(...) 									                                        \
-        do {											                                            \
-            fprintf(stderr,"\nIn %s - function %s at line %d: ", __FILE__, __func__, __LINE__);	    \
-            fprintf(stderr,__VA_ARGS__);								                            \
-            fflush(stderr);                                                                         \
-                } while(0)
+#define DEBUG_PRINTF(...)                                                                   \
+    do                                                                                      \
+    {                                                                                       \
+        fprintf(stderr, "\nIn %s - function %s at line %d:", __FILE__, __func__, __LINE__); \
+        fprintf(stderr, __VA_ARGS__);                                                       \
+        fflush(stderr);                                                                     \
+    } while (0)
 #else
 #define DEBUG_PRINTF(...) (void)0
 #endif
 
+// definition of error handling
+#define DPLIST_ERR_HANDLER(condition, err_code)   \
+    do                                            \
+    {                                             \
+        if ((condition))                          \
+            DEBUG_PRINTF(#condition " failed\n"); \
+        assert(!(condition));                     \
+    } while (0)
 
-#define DPLIST_ERR_HANDLER(condition, err_code)                         \
-    do {                                                                \
-            if ((condition)) DEBUG_PRINTF(#condition " failed\n");      \
-            assert(!(condition));                                       \
-        } while(0)
-
-
-/*
- * The real definition of struct list / struct node
- */
-
-
-
-
-void* element_copy(void* element)
+// The real definition of struct node
+struct dplist_node
 {
-	sensor_node_t *node = (sensor_node_t *)malloc( sizeof(sensor_node_t));
-	
-	//*node = *(sensor_node_t *) element;  
-	node->room_id = ((sensor_node_t *)element)->room_id;
-	node->sensor_id = ((sensor_node_t *)element)->sensor_id;
-	node->running_avg = ((sensor_node_t *)element)->running_avg;
-	node->last_modified = ((sensor_node_t *)element)->last_modified;
-	for(int i = 0; i < RUN_AVG_LENGTH; i++)
-    {
-		node->data_list[i] = ((sensor_node_t *)element)->data_list[i];
-	}		
-	return (void*) node;
-}
+    dplist_node_t *prev, *next;
+    void *element;
+};
 
-void element_free(void** element)
+// The real definition of struct list
+struct dplist
 {
-	//free(((sensor_node_t *)element)->data_list);
-	free( *element);
-	*element = NULL;
-}
+    dplist_node_t *head;
+    void *(*element_copy)(void *src_element);
+    void (*element_free)(void **element);
+    int (*element_compare)(void *x, void *y);
+};
 
-int element_compare(void *x, void* y)
+dplist_t *dpl_create( // callback functions
+    void *(*element_copy)(void *src_element),
+    void (*element_free)(void **element),
+    int (*element_compare)(void *x, void *y))
 {
-    if(((sensor_node_t *)x)->sensor_id < (*((sensor_id_t *)y)))
-    {
-        return -1;
-    }
-
-	if(((sensor_node_t *)x)->sensor_id == (*((sensor_id_t *)y)))
-    {
-        return 0;
-    }
-      
-	if(((sensor_node_t *)x)->sensor_id > (*((sensor_id_t *)y)))
-        return 1;  
-    
-    return 0;
-}
-
-
-dplist_t *dpl_create(// callback functions
-        void *(*element_copy)(void *src_element),
-        void (*element_free)(void **element),
-        int (*element_compare)(void *x, void *y)
-) {
-    dplist_t *list;
-    list = malloc(sizeof(dplist_t));
-    assert(list!= NULL);
-
+    static dplist_t *list;
+    list = malloc(sizeof(struct dplist));
+    DPLIST_ERR_HANDLER(list == NULL, DPLIST_MEMORY_ERROR);
     list->head = NULL;
     list->element_copy = element_copy;
     list->element_free = element_free;
@@ -100,283 +62,168 @@ dplist_t *dpl_create(// callback functions
     return list;
 }
 
-
-
-
-void dpl_free(dplist_t **list, bool free_element) 
-    {
-        if((*list == NULL) || (list == NULL))
-            return;
-        else
-        {
-            dplist_node_t *cur = NULL, *next = NULL;
-
-            for(cur = (*list)->head; cur != NULL; cur = next)
-            {
-                next = cur->next;
-                if(free_element == true)
-                    (*list)->element_free(&(cur->element));
-                else;
-
-                free(cur);             
-            }
-
-            //free((*list)->head);
-            free(*list);
-            *list = NULL;
-            return;
-        }
-
-    }
-
-
-
-
-
-dplist_t *dpl_insert_at_index(dplist_t *list, void *element, int index, bool insert_copy) 
+void dpl_free(dplist_t **list, bool free_element)
 {
-    dplist_node_t *ref_at_index, *list_node;
-    if (list == NULL) return NULL;
-
-    list_node = malloc(sizeof(dplist_node_t));
-    assert(list_node != NULL);
-
-    if(insert_copy == true)
-        list_node->element = list->element_copy(element);
-    else
-        list_node->element = element;
-
-    // pointer drawing breakpoint
-    if (list->head == NULL) { // covers case 1
-        list_node->prev = NULL;
-        list_node->next = NULL;
-        list->head = list_node;
-        // pointer drawing breakpoint
-    } 
-    else 
+    if (*list == NULL)
+        return;
+    if ((*list)->head == NULL)
     {
-        if (index <= 0) 
-        { // covers case 2
-            list_node->prev = NULL;
-            list_node->next = list->head;
-            list->head->prev = list_node;
-            list->head = list_node;
-        // pointer drawing breakpoint
-        } 
-        else 
-        {
-            ref_at_index = dpl_get_reference_at_index(list, index);
-            assert(ref_at_index != NULL);
-            // pointer drawing breakpoint
-            if (index < dpl_size(list)) 
-            { // covers case 4
-                list_node->prev = ref_at_index->prev;
-                list_node->next = ref_at_index;
-                ref_at_index->prev->next = list_node;
-                ref_at_index->prev = list_node;
-                // pointer drawing breakpoint
-            } 
-            else 
-            { // covers case 3
-                list_node->next = NULL;
-                list_node->prev = ref_at_index;
-                ref_at_index->next = list_node;
-                // pointer drawing breakpoint
-            }
-        }
+        free(*list);
+        *list = NULL;
+        return;
     }
-
-    //if(insert_copy == true)
-    //    free(list_node->element);
-    //free(list_node);
-
-    return list;
+    dplist_node_t *current = (*list)->head;
+    dplist_node_t *next = NULL;
+    while (current != NULL)
+    {
+        next = current->next;
+        if (free_element)
+            (*list)->element_free(&current->element);
+        free(current);
+        current = next;
+    }
+    free(*list);
+    *list = NULL;
 }
 
-
-
-
-
-
-
-dplist_t *dpl_remove_at_index(dplist_t *list, int index, bool free_element) 
+dplist_t *dpl_insert_at_index(dplist_t *list, void *element, int index, bool insert_copy)
 {
-    if(list == NULL)
+    if (list == NULL)
         return NULL;
-
-    if(list->head == NULL)
-        return list;
-
-    if(list->head->next == NULL)
+    dplist_node_t *new_node = malloc(sizeof(dplist_node_t));
+    DPLIST_ERR_HANDLER(new_node == NULL, DPLIST_MEMORY_ERROR);
+    if (insert_copy)
+        new_node->element = list->element_copy(element);
+    else
+        new_node->element = element;
+    if (index == 0)
     {
-        if(free_element == true)
-           list->element_free(&(list->head->element)); 
-        free(list->head);
-        list->head = NULL;
-        return list;
+        new_node->next = list->head;
+        new_node->prev = NULL;
+        if (list->head != NULL)
+            list->head->prev = new_node;
+        list->head = new_node;
     }
-
-    dplist_node_t *cur;
-    cur = malloc(sizeof(struct dplist_node));
-
-    if(index <= 0)
-    {
-        cur = list->head;
-        list->head = cur->next;
-        list->head->prev = NULL;
-
-        if(free_element == true)
-           list->element_free(&(cur->element)); 
-        free(cur);
-        cur = NULL;
-        return list;
-    }
-
-    //dplist_node_t *cur;
-    //cur = malloc(sizeof(struct dplist_node));
-    //printf("#######\n");
-    cur = dpl_get_reference_at_index(list, index);
-    //printf("%d\n",((sensor_node_t *)cur->element)->room_id);
-    assert(cur != NULL); 
-
-    if(index >= (dpl_size(list)-1))
-        cur->prev->next = NULL;
     else
     {
-        cur->prev->next = cur->next;
-        cur->next->prev = cur->prev;
+        dplist_node_t *current = list->head;
+        int i = 0;
+        while (i < index - 1 && current != NULL)
+        {
+            current = current->next;
+            i++;
+        }
+        if (current == NULL)
+        {
+            free(new_node);
+            return NULL;
+        }
+        new_node->next = current->next;
+        new_node->prev = current;
+        if (current->next != NULL)
+            current->next->prev = new_node;
+        current->next = new_node;
     }
-
-    if(free_element == true)
-        list->element_free(&(cur->element)); 
-    free(cur);
-    cur = NULL;
     return list;
 }
 
-
-
-
+dplist_t *dpl_remove_at_index(dplist_t *list, int index, bool free_element)
+{
+    DPLIST_ERR_HANDLER(list == NULL, DPLIST_INVALID_ERROR);
+    dplist_node_t *current = list->head;
+    int i = 0;
+    while (i < index && current != NULL)
+    {
+        current = current->next;
+        i++;
+    }
+    if (current == NULL)
+        return NULL;
+    if (current->prev == NULL)
+        list->head = current->next;
+    else
+        current->prev->next = current->next;
+    if (current->next != NULL)
+        current->next->prev = current->prev;
+    if (free_element)
+        list->element_free(&current->element);
+    free(current);
+    return list;
+}
 
 int dpl_size(dplist_t *list)
 {
-    if(list == NULL)
+    if (list == NULL)
         return -1;
-    else
+    dplist_node_t *current = list->head;
+    int size = 0;
+    while (current != NULL)
     {
-        dplist_node_t *cur;
-
-        int i = 0;
-        for(cur = list->head; cur != NULL; i++)
-            cur = cur->next;
-        
-        return i;
+        size++;
+        current = current->next;
     }
+    return size;
 }
 
-
-
-
-
-void *dpl_get_element_at_index(dplist_t *list, int index) 
+void *dpl_get_element_at_index(dplist_t *list, int index)
 {
-    if(list == NULL || list->head == NULL)
+    if (list == NULL)
         return NULL;
-    else
+    dplist_node_t *current = list->head;
+    int i = 0;
+    while (i < index && current != NULL)
     {
-        dplist_node_t *cur;   
-        cur = dpl_get_reference_at_index(list,index);
-        assert(cur != NULL);  
-        
-        return cur->element;  
+        current = current->next;
+        i++;
     }
+    if (current == NULL)
+        return NULL;
+    return current->element;
 }
 
-
-
-
-
-int dpl_get_index_of_element(dplist_t *list, void *element) 
+int dpl_get_index_of_element(dplist_t *list, void *element)
 {
-    if((list == NULL)||(list->head == NULL))
-        return -1; //NULL is not int
-    else
+    if (list == NULL)
+        return -1;
+    dplist_node_t *current = list->head;
+    int i = 0;
+    while (current != NULL)
     {
-        dplist_node_t *cur;
-        cur = malloc(sizeof(dplist_node_t));
-        assert(cur != NULL);   
-        
-        int index = 0;
-#if 0
-        for(cur = list->head; (list->element_compare(cur->element,element) != 0) && (cur != NULL); index++)
-        {
-            cur = cur->next;
-            printf("%d\n",index);
-        }
-#endif
-        for(cur = list->head; cur != NULL; index++)
-        {
-            if(list->element_compare(cur->element,element) == 0)
-                break;
-            cur = cur->next;
-        }
-
-        if(cur == NULL)
-        {
-            //free(cur);
-            return -1;
-        }
-        else
-        {
-            //free(cur);
-            return index;
-        }
-    }    
+        if (list->element_compare(current->element, element) == 0)
+            return i;
+        current = current->next;
+        i++;
+    }
+    return -1;
 }
 
-
-
-dplist_node_t *dpl_get_reference_at_index(dplist_t *list, int index) 
+dplist_node_t *dpl_get_reference_at_index(dplist_t *list, int index)
 {
-    int count = 0;
-    int num = index;
-    dplist_node_t *dummy;
-    if(list == NULL)
+    if (list == NULL)
         return NULL;
-    if (list->head == NULL) 
-        return NULL;
-    if(num <= 0)
-        return list->head;
-
-    if(num >= sizeof(list))
-        num = (sizeof(list)-1);
-
-    for (dummy = list->head; dummy->next != NULL; dummy = dummy->next) 
+    dplist_node_t *current = list->head;
+    int i = 0;
+    while (i < index && current != NULL)
     {
-        if (count >= num) 
-            return dummy;
-        count++;
+        current = current->next;
+        i++;
     }
-    return dummy;
+    if (current == NULL)
+        return NULL;
+    return current;
 }
 
-
-
-
-void *dpl_get_element_at_reference(dplist_t *list, dplist_node_t *reference) 
+void *dpl_get_element_at_reference(dplist_t *list, dplist_node_t *reference)
 {
-    if((list == NULL) || (list->head == NULL) || (reference == NULL))
+    if (list == NULL || reference == NULL)
         return NULL;
-    else
+    DPLIST_ERR_HANDLER(reference == NULL, DPLIST_INVALID_ERROR);
+    dplist_node_t *current = list->head;
+    while (current != NULL)
     {
-        dplist_node_t *cur;
-        cur = malloc(sizeof(struct dplist_node));
-        assert(cur != NULL);
-
-        for(cur = list->head; ((cur->prev != reference->prev) || (cur->next != reference->next)) && cur != NULL; cur = cur->next);
-        if(cur == NULL)
-            return NULL;
-        else
-            return cur->element;
+        if (current == reference)
+            return current->element;
+        current = current->next;
     }
+    return NULL;
 }

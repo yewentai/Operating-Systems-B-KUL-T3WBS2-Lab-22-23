@@ -1,31 +1,52 @@
+/**
+ * \author Wentai Ye
+ */
+
+#ifndef _SENSOR_DB_H_
+#define _SENSOR_DB_H_
+
 #include <stdio.h>
 #include <stdlib.h>
-#include "config.h"
-#include <stdbool.h>
+#include <errno.h>
+#include <time.h>
+#include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <stdbool.h>
+#include "config.h"
+#include "sbuffer.h"
 
-extern int fd[2];
+extern int fd[2]; // pipe file descriptor
+extern sbuffer_t *sbuffer;
+extern pthread_mutex_t mutex_pipe;
+extern bool quit;
 
-FILE * open_db(char * filename, bool append);
+/**
+ * The storage manager thread reads sensor measurements from the shared data buffer
+ * and inserts them into a csv-file “data.csv”
+ */
+void *storagemgr();
+
 /*
-an operation to open a text file with a given name, and providing an indication 
-if the file should be overwritten if the file already exists or if the data should
-be appended to the existing file.
+open a text file with a given name, and select open mode.
+param filename: the name of the file to open
+param append: if true, the data should be appended to the existing file, if false, the file should be overwritten
 */
+FILE *open_db(char *filename, bool append);
 
-
-int insert_sensor(FILE * f, sensor_id_t id, sensor_value_t value, sensor_ts_t ts);
 /*
-an operation to append a single sensor reading to the csv file
+append a single sensor reading to the csv file.
+param f: the file pointer to the csv file
+param data: the sensor reading to append
 */
+void insert_sensor(FILE *f, sensor_data_t *data);
 
-
-int close_db(FILE * f);
 /*
-an operation to close the csv file.
+close the csv file.
+param f: the file pointer to the csv file
 */
+int close_db(FILE *f);
 
-int insert_log(FILE *fp, int num);
-/*
-an operation to read the content in the pipe and write it to the file gateway.log
-*/
+#endif /* _SENSOR_DB_H_ */

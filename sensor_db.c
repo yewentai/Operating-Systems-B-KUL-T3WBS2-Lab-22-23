@@ -1,121 +1,101 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<stdbool.h>
-#include <unistd.h>
-#include<string.h>
+/**
+ * \author Wentai Ye
+ */
 
 #include "sensor_db.h"
-#include "config.h"
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 
-#define length 100
-#define READ_END 0
-#define WRITE_END 1
+static char tmsg[SIZE]; // Message to be received from the child process
 
-FILE * open_db(char * filename, bool append)
+void *storagemgr()
 {
-    FILE *fp;
-    char log[length];
+    puts("[Storage manager] Storage manager Started!");
 
-    if(filename == NULL)
+    FILE *fp = fopen("sensor_data.csv", "w");
+    if (fp == NULL)
     {
-        strcpy(log, "An error occurred when writing to the csv file.");
-        write(fd[WRITE_END], log, strlen(log)+1);
-        return NULL;
+        perror("fopen()");
+        exit(EXIT_FAILURE);
     }
-    else
+    fclose(fp);
+    pthread_mutex_lock(&mutex_pipe);
+    strcpy(tmsg, "A new data.csv file has been created.");
+    write(fd[WRITE_END], tmsg, SIZE);
+    pthread_mutex_unlock(&mutex_pipe);
+    puts("[Storage manager] A new data.csv file has been created.");
+
+    FILE *csv = fopen("sensor_data.csv", "a"); // Open the file in append mode
+    if (csv == NULL)
     {
-        if(append)
-            fp = fopen(filename, "a");
-        else
-            fp = fopen(filename, "w");
-        
-        if (fp != NULL)
-            strcpy(log, "A new csv file is created or an existing file has been opened.");
-        else
-            strcpy(log, "An error occurred when writing to the csv file.");
-        
-        write(fd[WRITE_END], log, strlen(log)+1);
+        perror("fopen()");
+        exit(EXIT_FAILURE);
     }
 
-    return fp;    
-}
-
-
-
-#if 0
-int insert_sensor(FILE * f, sensor_id_t id, sensor_value_t value, sensor_ts_t ts)
-{
-    char log[length];
-
-    if(f == NULL)
+    sensor_data_t *data = malloc(sizeof(sensor_data_t));
+    while (1)
     {
-        strcpy(log, "An error occurred when writing to the csv file.");
-        write(fd[WRITE_END], log, strlen(log)+1);
-        return -1;
-    }       
-    else
-    {
-        int i = fprintf(f, "%d\t%f\t%ld\n", id, value, ts);
-
-        if(i <= 0)
-            strcpy(log, "An error occurred when writing to the csv file.");
-        else
-            sprintf(log,"Data insertion from sensor %d sensor.",id);  
-
-        write(fd[WRITE_END], log, strlen(log)+1);
-    }
-
-    return 0;
-}
-#endif
-
-
-
-
-int close_db(FILE *f)
-{
-    char log[length];
-
-    if(f == NULL)
-    {
-        strcpy(log, "An error occurred when writing to the csv file.");
-        write(fd[WRITE_END], log, strlen(log)+1);
-        return -1;
-    }       
-    else
-    {
-        fclose(f);
-        strcpy(log, "The data.csv file has been closed.");
-        write(fd[WRITE_END], log, strlen(log)+1);        
-    }
-
-    return 0;
-}
-
-
-
-
-int insert_log(FILE *fp, int num)
-{
-    if(fp == NULL)
-        return -1;
-    else
-    {
-        char buffer[length];
-        //printf("&&&&&&&&&&&\n");
-        //open((void *)&(fd[READ_END]),O_NONBLOCK);
-        int i = read(fd[READ_END], buffer, length);
-        //printf("——————————————%d——————————\n",i);
-        if(i > 1)
+        int ret_remove = sbuffer_remove(sbuffer, data);
+        if (ret_remove == SBUFFER_SUCCESS)
         {
-            time_t ts = time(NULL);
-            fprintf(fp, "%d\t%ld\t%s\n", num,ts,buffer);
+            insert_sensor(csv, data);
+            pthread_mutex_lock(&mutex_pipe);
+            sprintf(tmsg, "Data insertion from sensor %d succeeded.", data->id);
+            write(fd[WRITE_END], tmsg, SIZE);
+            pthread_mutex_unlock(&mutex_pipe);
+            puts("[Storage manager] Data insertion from sensor succeeded.");
+        }
+        else if (ret_remove == SBUFFER_NO_DATA)
+        {
+            // pthread_cond_wait(&cond_signal_tail, &mutex_sbuffer_head);
+            // sleep(1);
         }
         else
-            return -1;
-        return i;
+        {
+            pthread_mutex_lock(&mutex_pipe);
+            sprintf(tmsg, "Data insertion from sensor failed.");
+            write(fd[WRITE_END], tmsg, SIZE);
+            pthread_mutex_unlock(&mutex_pipe);
+            break;
+        }
+        if (quit == true)
+            break;
     }
+    close_db(csv); // Close sensor_data.csv
+    free(data);    // Free the memory
+    return NULL;
+}
+
+FILE *open_db(char *filename, bool append)
+{
+    FILE *fp;
+    if (append)
+        fp = fopen(filename, "a");
+    else
+        fp = fopen(filename, "w");
+    if (fp == NULL)
+    {
+        perror("fopen()");
+        exit(EXIT_FAILURE);
+    }
+    return fp;
+}
+
+void insert_sensor(FILE *csv, sensor_data_t *data)
+{
+    fprintf(csv, "%ld,%" PRIu16 ",%.1lf\n", data->ts, data->id, data->value);
+}
+
+int close_db(FILE *csv)
+{
+    if (csv == NULL)
+    {
+        perror("fopen()");
+        exit(EXIT_FAILURE);
+    }
+    fclose(csv);
+    pthread_mutex_lock(&mutex_pipe);
+    strcpy(tmsg, "The data.csv file has been closed.");
+    write(fd[WRITE_END], tmsg, SIZE);
+    pthread_mutex_unlock(&mutex_pipe);
+    puts("[Storage manager] The data.csv file has been closed.");
+    return 0;
 }

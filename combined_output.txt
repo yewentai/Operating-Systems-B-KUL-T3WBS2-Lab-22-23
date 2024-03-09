@@ -1,0 +1,2028 @@
+----- Start of datamgr.h -----
+/**
+ * \author Wentai Ye
+ */
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
+#include <string.h>
+#include <stdbool.h>
+#include <unistd.h>
+#include "config.h"
+#include "lib/dplist.h"
+#include "sbuffer.h"
+
+#ifndef DATAMGR_H_
+#define DATAMGR_H_
+
+#ifndef SET_MAX_TEMP
+#error SET_MAX_TEMP not set
+#endif
+
+#ifndef SET_MIN_TEMP
+#error SET_MIN_TEMP not set
+#endif
+
+#define RUN_AVG_LENGTH 5
+
+extern int fd[2];                  // pipe file descriptor
+extern sbuffer_t *sbuffer;         // Pointer to the shared buffer
+extern pthread_mutex_t mutex_pipe; // Mutex for the log file
+extern bool quit;                  // Flag to quit
+
+/*
+ * Use ERROR_HANDLER() for handling memory allocation problems, invalid sensor IDs, non-existing files, etc.
+ */
+#define ERROR_HANDLER(condition, ...)                                                                     \
+  do                                                                                                      \
+  {                                                                                                       \
+    if (condition)                                                                                        \
+    {                                                                                                     \
+      printf("\nError: in %s - function %s at line %d: %s\n", __FILE__, __func__, __LINE__, __VA_ARGS__); \
+      exit(EXIT_FAILURE);                                                                                 \
+    }                                                                                                     \
+  } while (0)
+
+/**
+ * The data manager thread implements the server intelligence as defined in plab1.
+ * The room-sensor mapping is read from a text file “room_sensor.map”.
+ * The data manager reads sensor measurements from the shared in-memory data buffer.
+ */
+void *datamgr();
+
+/**
+ * This method should be called to initialize the datamgr, and to read the room-sensor mapping from the file room_sensor.map
+ * Use ERROR_HANDLER() if the file cannot be opened
+ * \return a pointer to the list
+ */
+int **get_map_array();
+
+/**
+ * This method should be called to clean up the datamgr, and to free all used memory.
+ * After this, any call to datamgr_get_room_id, datamgr_get_avg, datamgr_get_last_modified or datamgr_get_total_sensors will not return a valid result
+ */
+void datamgr_free(dplist_t *list);
+
+/**
+ * Gets the room ID for a certain sensor ID
+ * Use ERROR_HANDLER() if sensor_id is invalid
+ * \param sensor_id the sensor id to look for
+ * \return the corresponding room id
+ */
+uint16_t datamgr_get_room_id(sensor_id_t sensor_id, int **map, int m);
+
+/**
+ * Gets the running AVG of a certain senor ID (if less then RUN_AVG_LENGTH measurements are recorded the avg is 0)
+ * Use ERROR_HANDLER() if sensor_id is invalid
+ * \param sensor_id the sensor id to look for
+ * \return the running AVG of the given sensor
+ */
+sensor_value_t datamgr_get_avg(sensor_id_t sensor_id, dplist_t *list);
+
+/**
+ * Returns the time of the last reading for a certain sensor ID
+ * Use ERROR_HANDLER() if sensor_id is invalid
+ * \param sensor_id the sensor id to look for
+ * \return the last modified timestamp for the given sensor
+ */
+time_t datamgr_get_last_modified(sensor_id_t sensor_id, dplist_t *list);
+
+/**
+ *  Return the total amount of unique sensor ID's recorded by the datamgr
+ *  \return the total amount of sensors
+ */
+int datamgr_get_total_sensors(dplist_t *list);
+
+void *element_copy(void *element);
+
+void element_free(void **element);
+
+int element_compare(void *x, void *y);
+
+#endif // DATAMGR_H_
+
+----- End of datamgr.h -----
+
+----- Start of connmgr.h -----
+/**
+ * \author Wentai Ye
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <inttypes.h>
+#include <pthread.h>
+#include <string.h>
+#include <time.h>
+#include <sys/time.h>
+#include "config.h"
+#include "sbuffer.h"
+#include "lib/tcpsock.h"
+
+#ifndef CONNMGR_H_
+#define CONNMGR_H_
+
+#ifndef TIMEOUT
+#error TIMEOUT not set
+#endif
+
+#ifndef MAX_CONN
+#define MAX_CONN 2
+#endif
+
+extern int cur_conn;               // Number of connections
+extern int fd[2];                  // File descriptor for the pipe
+extern sbuffer_t *sbuffer;         // Shared buffer
+extern pthread_mutex_t mutex_pipe; // Mutex for the log file
+extern bool quit;                  // Flag to quit
+
+/**
+ * The connection manager listens on a TCP socket for incoming connection requests
+from new sensor nodes.
+ * \param port The port number
+ */
+void *connmgr(void *port);
+
+/**
+ * \brief This is a thread created by datamgr and used to listen to the port,
+ * each client will correspond to a thread.
+ * \param p_client The pointer to client socket
+ */
+void *connmgr_listen(void *p_client);
+
+#endif // CONNMGR_H_
+----- End of connmgr.h -----
+
+----- Start of sensor_db.c -----
+/**
+ * \author Wentai Ye
+ */
+
+#include "sensor_db.h"
+
+static char tmsg[SIZE]; // Message to be received from the child process
+
+void *storagemgr()
+{
+    puts("[Storage manager] Storage manager Started!");
+
+    FILE *fp = fopen("sensor_data.csv", "w");
+    if (fp == NULL)
+    {
+        perror("fopen()");
+        exit(EXIT_FAILURE);
+    }
+    fclose(fp);
+    pthread_mutex_lock(&mutex_pipe);
+    strcpy(tmsg, "A new data.csv file has been created.");
+    write(fd[WRITE_END], tmsg, SIZE);
+    pthread_mutex_unlock(&mutex_pipe);
+    puts("[Storage manager] A new data.csv file has been created.");
+
+    FILE *csv = fopen("sensor_data.csv", "a"); // Open the file in append mode
+    if (csv == NULL)
+    {
+        perror("fopen()");
+        exit(EXIT_FAILURE);
+    }
+
+    sensor_data_t *data = malloc(sizeof(sensor_data_t));
+    while (1)
+    {
+        int ret_remove = sbuffer_remove(sbuffer, data);
+        if (ret_remove == SBUFFER_SUCCESS)
+        {
+            insert_sensor(csv, data);
+            pthread_mutex_lock(&mutex_pipe);
+            sprintf(tmsg, "Data insertion from sensor %d succeeded.", data->id);
+            write(fd[WRITE_END], tmsg, SIZE);
+            pthread_mutex_unlock(&mutex_pipe);
+            puts("[Storage manager] Data insertion from sensor succeeded.");
+        }
+        else if (ret_remove == SBUFFER_NO_DATA)
+        {
+            // pthread_cond_wait(&cond_signal_tail, &mutex_sbuffer_head);
+            // sleep(1);
+        }
+        else
+        {
+            pthread_mutex_lock(&mutex_pipe);
+            sprintf(tmsg, "Data insertion from sensor failed.");
+            write(fd[WRITE_END], tmsg, SIZE);
+            pthread_mutex_unlock(&mutex_pipe);
+            break;
+        }
+        if (quit == true)
+            break;
+    }
+    close_db(csv); // Close sensor_data.csv
+    free(data);    // Free the memory
+    return NULL;
+}
+
+FILE *open_db(char *filename, bool append)
+{
+    FILE *fp;
+    if (append)
+        fp = fopen(filename, "a");
+    else
+        fp = fopen(filename, "w");
+    if (fp == NULL)
+    {
+        perror("fopen()");
+        exit(EXIT_FAILURE);
+    }
+    return fp;
+}
+
+void insert_sensor(FILE *csv, sensor_data_t *data)
+{
+    fprintf(csv, "%ld,%" PRIu16 ",%.1lf\n", data->ts, data->id, data->value);
+}
+
+int close_db(FILE *csv)
+{
+    if (csv == NULL)
+    {
+        perror("fopen()");
+        exit(EXIT_FAILURE);
+    }
+    fclose(csv);
+    pthread_mutex_lock(&mutex_pipe);
+    strcpy(tmsg, "The data.csv file has been closed.");
+    write(fd[WRITE_END], tmsg, SIZE);
+    pthread_mutex_unlock(&mutex_pipe);
+    puts("[Storage manager] The data.csv file has been closed.");
+    return 0;
+}
+
+----- End of sensor_db.c -----
+
+----- Start of config.h -----
+/**
+ * \author Wentai Ye
+ */
+
+#ifndef _CONFIG_H_
+#define _CONFIG_H_
+
+#include <stdint.h>
+#include <time.h>
+#include <stdbool.h>
+
+#define READ_END 0  // The read end of the pipe
+#define WRITE_END 1 // The write end of the pipe
+#define SIZE 1024   // The size of the pipe buffer
+
+typedef uint16_t sensor_id_t;
+typedef double sensor_value_t;
+typedef time_t sensor_ts_t; // UTC timestamp as returned by time() - notice that the size of time_t is different on 32/64 bit machine
+typedef uint16_t sensor_room_t;
+
+typedef struct
+{
+    sensor_id_t id;
+    sensor_value_t value;
+    sensor_ts_t ts;
+} sensor_data_t;
+
+typedef struct
+{
+    sensor_id_t sensor_id;
+    sensor_value_t value;
+    sensor_value_t avg;
+    sensor_ts_t ts;
+    bool valid;
+} my_element_t;
+
+#endif /* _CONFIG_H_ */
+
+----- End of config.h -----
+
+----- Start of sbuffer.c -----
+/**
+ * \author Wentai Ye
+ */
+
+#include "sbuffer.h"
+
+pthread_mutex_t mutex_pipe;         // Mutex for the log file
+pthread_mutex_t mutex_sbuffer_head; // Mutex for the shared buffer
+pthread_mutex_t mutex_sbuffer_tail; // Mutex for the shared buffer
+pthread_cond_t cond;                // Condition variable for the storage manager thread
+
+/**
+ * basic node for the sbuffer, these nodes are linked together to create the sbuffer
+ */
+struct sbuffer_node
+{
+    struct sbuffer_node *next; /**< a pointer to the next node*/
+    sensor_data_t data;        /**< a structure containing the data */
+};
+
+/**
+ * a structure to keep track of the sbuffer
+ */
+struct sbuffer
+{
+    sbuffer_node_t *head; /**< a pointer to the first node in the sbuffer */
+    sbuffer_node_t *tail; /**< a pointer to the last node in the sbuffer */
+    int count;            /**< the number of nodes in the sbuffer */
+};
+
+int sbuffer_init(sbuffer_t **sbuffer)
+{
+    *sbuffer = malloc(sizeof(sbuffer_t));
+    if (*sbuffer == NULL)
+        return SBUFFER_FAILURE;
+    (*sbuffer)->head = NULL;
+    (*sbuffer)->tail = NULL;
+    (*sbuffer)->count = 0;
+    pthread_cond_init(&cond, NULL);                // Initialize the condition variable
+    pthread_mutex_init(&mutex_sbuffer_head, NULL); // Initialize the mutex for the shared buffer
+    pthread_mutex_init(&mutex_sbuffer_tail, NULL); // Initialize the mutex for the shared buffer
+    return SBUFFER_SUCCESS;
+}
+
+int sbuffer_free(sbuffer_t **sbuffer)
+{
+    if ((sbuffer == NULL) || (*sbuffer == NULL))
+    {
+        return SBUFFER_FAILURE;
+    }
+    while ((*sbuffer)->head)
+    { // free all nodes
+        sbuffer_node_t *dummy;
+        dummy = (*sbuffer)->head;
+        (*sbuffer)->head = (*sbuffer)->head->next;
+        free(dummy);
+    }
+    free(*sbuffer);
+    *sbuffer = NULL;
+    return SBUFFER_SUCCESS;
+}
+
+int sbuffer_remove(sbuffer_t *sbuffer, sensor_data_t *data)
+{
+    if (sbuffer == NULL)
+        return SBUFFER_FAILURE;
+    if (sbuffer->head == NULL)
+    {
+        return SBUFFER_NO_DATA;
+    }
+    *data = sbuffer->head->data;
+    pthread_mutex_lock(&mutex_sbuffer_head);
+
+    if (sbuffer->head == sbuffer->tail) // sbuffer has only one node
+        sbuffer->head = sbuffer->tail = NULL;
+    else // sbuffer has many nodes empty
+        sbuffer->head = sbuffer->head->next;
+    sbuffer->count--;
+    pthread_cond_signal(&cond); // Signal the condition variable
+    pthread_mutex_unlock(&mutex_sbuffer_head);
+    return SBUFFER_SUCCESS;
+}
+
+int sbuffer_read(sbuffer_t *sbuffer, sensor_data_t *data)
+{
+    if (sbuffer == NULL)
+        return SBUFFER_FAILURE;
+    if (sbuffer->head == NULL)
+        return SBUFFER_NO_DATA;
+    *data = sbuffer->head->data;
+    pthread_cond_wait(&cond, &mutex_sbuffer_head); // Wait for the condition variable
+    return SBUFFER_SUCCESS;
+}
+
+int sbuffer_insert(sbuffer_t *sbuffer, sensor_data_t *data)
+{
+    if (sbuffer == NULL)
+        return SBUFFER_FAILURE;
+
+    sbuffer_node_t *dummy = malloc(sizeof(sbuffer_node_t));
+    if (dummy == NULL)
+        return SBUFFER_FAILURE;
+
+    pthread_mutex_lock(&mutex_sbuffer_tail);
+    dummy->data = *data;
+    dummy->next = NULL;
+    if (sbuffer->tail == NULL) // sbuffer empty (sbuffer->head should also be NULL
+    {
+        sbuffer->head = sbuffer->tail = dummy;
+    }
+    else // sbuffer not empty
+    {
+        sbuffer->tail->next = dummy;
+        sbuffer->tail = sbuffer->tail->next;
+    }
+    pthread_mutex_unlock(&mutex_sbuffer_tail);
+    sbuffer->count++;
+    return SBUFFER_SUCCESS;
+}
+
+----- End of sbuffer.c -----
+
+----- Start of connmgr.c -----
+/**
+ * \author Wentai Ye
+ */
+
+#include "connmgr.h"
+
+static char tmsg[SIZE];        // Message to be sent to the child process
+static struct timeval timeout; // Timeout for select()
+
+void *connmgr(void *port_void)
+{
+        int tol_conn = 0;             // Number of total connections
+        tcpsock_t *server, *client;   // Server and client socket
+        int port = *(int *)port_void; // Port number
+        pthread_t tid[MAX_CONN];      // Thread ID
+        timeout.tv_sec = TIMEOUT;     // Timeout for tcp_receive()
+        timeout.tv_usec = 0;          // Timeout for tcp_receive()
+        if (tcp_passive_open(&server, port) != TCP_NO_ERROR)
+                exit(EXIT_FAILURE);
+        puts("[Connection manager] Connection manager Started!");
+
+        while (tol_conn <= MAX_CONN)
+        {
+                if (tcp_wait_for_connection(server, &client) != TCP_NO_ERROR)
+                        exit(EXIT_FAILURE);
+                cur_conn++; // The number of connections
+                tol_conn++; // The total number of connections
+                puts("[Connection manager] A new connection is established.");
+
+                if (pthread_create(tid + cur_conn, NULL, connmgr_listen, client) != 0)
+                {
+                        perror("pthread_create()");
+                        exit(EXIT_FAILURE);
+                }
+        }
+
+        if (tcp_close(&server) != TCP_NO_ERROR) // Close the server socket
+                exit(EXIT_FAILURE);
+        puts("[Connection manager] Connection manager is terminated.");
+        for (int i = 0; i < tol_conn; i++) // Wait for all threads to finish
+                pthread_join(tid[i], NULL);
+        pthread_exit(NULL);
+}
+
+void *connmgr_listen(void *p_client)
+{
+        tcpsock_t *client = (tcpsock_t *)p_client;                                  // Client socket
+        int sd;                                                                     // Socket descriptor
+        tcp_get_sd(client, &sd);                                                    // Socket descriptor
+        setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)); // Set timeout for tcp_receive()
+        sensor_data_t data;                                                         // Data to be received from the client
+        int bytes = 0;                                                              // Number of bytes received
+        int result = TCP_NO_ERROR;                                                  // Result of tcp_receive()
+
+        /*****************************************
+         * Read first data from the client socket
+         *****************************************/
+        // read sensor ID
+        bytes = sizeof(data.id);
+        result = tcp_receive(client, (void *)&data.id, &bytes);
+        // read temperature
+        bytes = sizeof(data.value);
+        result = tcp_receive(client, (void *)&data.value, &bytes);
+        // read timestamp
+        bytes = sizeof(data.ts);
+        result = tcp_receive(client, (void *)&data.ts, &bytes);
+        if (result == TCP_NO_ERROR)
+        {
+                // write data to sbuffer
+                pthread_mutex_lock(&mutex_pipe);
+                sprintf(tmsg, "Sensor node %d has opened a new connection.", data.id);
+                write(fd[WRITE_END], tmsg, SIZE);
+                pthread_mutex_unlock(&mutex_pipe);
+                sbuffer_insert(sbuffer, &data);
+
+                /********************************************************
+                 * Read the following data from the client socket
+                 * until the connection is closed and timeout is reached
+                 * or an error occurs
+                 ********************************************************/
+                while (1)
+                {
+                        // read sensor ID
+                        bytes = sizeof(data.id);
+                        result = tcp_receive(client, (void *)&data.id, &bytes);
+                        // read temperature
+                        bytes = sizeof(data.value);
+                        result = tcp_receive(client, (void *)&data.value, &bytes);
+                        // read timestamp
+                        bytes = sizeof(data.ts);
+                        result = tcp_receive(client, (void *)&data.ts, &bytes);
+                        // write data to sbuffer
+                        if (result == TCP_NO_ERROR)
+                                sbuffer_insert(sbuffer, &data);
+                        else
+                                break;
+                }
+        }
+
+        if (result == TCP_SOCKET_ERROR)
+        {
+                pthread_mutex_lock(&mutex_pipe);
+                sprintf(tmsg, "Error occured on connection to peer!");
+                write(fd[WRITE_END], tmsg, SIZE);
+                pthread_mutex_unlock(&mutex_pipe);
+        }
+        else if (result == TCP_CONNECTION_CLOSED)
+        {
+                cur_conn--;
+                pthread_mutex_lock(&mutex_pipe);
+                sprintf(tmsg, "Sensor node %d has closed the connection.", data.id);
+                write(fd[WRITE_END], tmsg, SIZE);
+                pthread_mutex_unlock(&mutex_pipe);
+                tcp_close(&client);
+                puts("[Connection manager] A connection is closed.");
+        }
+        pthread_exit(NULL);
+}
+----- End of connmgr.c -----
+
+----- Start of datamgr.c -----
+/**
+ * \author Wentai Ye
+ */
+
+#include "datamgr.h"
+
+static char tmsg[SIZE]; // Message to be received from the child process
+
+void *datamgr()
+{
+    puts("[Data manager] Data manager Started!");
+    /*********************************************************************
+     * Create a two-dimensional array to store the room_sensor information
+     *********************************************************************/
+    FILE *fp = fopen("room_sensor.map", "r"); // open "room_sensor.map"
+    int num_room = 0;                         // the number of lines in the file
+    int num_col = 2;                          // the number of columns in the file
+    char tmp;
+    while (!feof(fp)) // get the lines of the file
+    {
+        tmp = fgetc(fp); // get the character
+        if (tmp == '\n') // if the character is map new line
+            num_room++;  // increase the line count
+    }
+    rewind(fp); // set the file pointer to the beginning of the file
+    // allocate the memory for the map array
+    int **map;
+    map = (int **)malloc(sizeof(int *) * num_room);
+    for (int i = 0; i < num_room; i++)
+        map[i] = (int *)malloc(sizeof(int) * num_col);
+    // read the data from the file
+    for (int i = 0; i < num_room; i++)
+    {
+        for (int j = 0; j < num_col; j++)
+        {
+            fscanf(fp, "%d", &map[i][j]);
+        }
+    }
+    fclose(fp);
+
+    /*********************************
+     * insert the data into the dplist
+     *********************************/
+    dplist_t *list = NULL;
+    list = dpl_create(element_copy, element_free, element_compare);
+    my_element_t *element = malloc(sizeof(my_element_t));
+    sensor_data_t *data = malloc(sizeof(sensor_data_t));
+    while (1)
+    {
+        int ret_read = sbuffer_read(sbuffer, data);
+        if (ret_read == SBUFFER_SUCCESS)
+        {
+            puts("[Data manager] Data has been removed from the sbuffer.");
+            element->sensor_id = data->id;
+            element->value = data->value;
+            element->avg = datamgr_get_avg(data->id, list);
+            element->ts = data->ts;
+            element->valid = false;
+            /*******************************************************
+             * check the data just inserted and write the log message
+             *******************************************************/
+            // check if the sensor node ID is valid
+            for (int i = 0; i < num_room; i++)
+            {
+                if (map[i][1] == data->id)
+                {
+                    element->valid = true;
+                    dpl_insert_at_index(list, element, 0, true);
+                    // check if the temperature is out of range
+                    if (element->avg > SET_MAX_TEMP)
+                    {
+                        pthread_mutex_lock(&mutex_pipe);
+                        sprintf(tmsg, "Sensor node %d reports it is too hot((avg temp = %0.2lf)", element->sensor_id, element->avg);
+                        write(fd[WRITE_END], tmsg, SIZE);
+                        pthread_mutex_unlock(&mutex_pipe);
+                    }
+                    else if (element->avg < SET_MIN_TEMP)
+                    {
+                        pthread_mutex_lock(&mutex_pipe);
+                        sprintf(tmsg, "Sensor node %d reports it is too cold((avg temp = %0.2lf)", element->sensor_id, element->avg);
+                        write(fd[WRITE_END], tmsg, SIZE);
+                        pthread_mutex_unlock(&mutex_pipe);
+                    }
+                    break; // break the loop if the sensor node ID is valid
+                }
+            }
+            if (element->valid == false)
+            {
+                pthread_mutex_lock(&mutex_pipe);
+                sprintf(tmsg, "Received sensor data with invalid sensor node ID %d", data->id);
+                write(fd[WRITE_END], tmsg, SIZE);
+                pthread_mutex_unlock(&mutex_pipe);
+            }
+        }
+        else if (ret_read == SBUFFER_NO_DATA)
+        {
+            // pthread_cond_wait(&cond_signal_tail, &mutex_sbuffer_head);
+            // sleep(1);
+        }
+        else if (ret_read == SBUFFER_FAILURE)
+        {
+            puts("[Data manager] Failed to remove data from the sbuffer.");
+        }
+        if (quit == true)
+            break;
+    }
+    free(element);
+    datamgr_free(list);
+    return NULL;
+}
+
+void datamgr_free(dplist_t *list)
+{
+    dpl_free(&list, true);
+}
+
+uint16_t datamgr_get_room_id(sensor_id_t sensor_id, int **map, int num_room)
+{
+    for (int i = 0; i < num_room; i++)
+    {
+        if (map[i][1] == sensor_id)
+            return map[i][0];
+    }
+    return 0;
+}
+
+sensor_value_t datamgr_get_avg(sensor_id_t sensor_id, dplist_t *list)
+{
+    sensor_value_t avg = 0;
+    int count = 0;
+    if (dpl_size(list) <= 5)
+    {
+        for (int i = 0; i < dpl_size(list); i++)
+        {
+            if (((my_element_t *)dpl_get_element_at_index(list, i))->sensor_id == sensor_id)
+            {
+                return ((my_element_t *)dpl_get_element_at_index(list, i))->value;
+            }
+        }
+    }
+
+    for (int i = 0; i < dpl_size(list); i++)
+    {
+        if (((my_element_t *)dpl_get_element_at_index(list, i))->sensor_id == sensor_id)
+        {
+            count++;
+            avg += ((my_element_t *)dpl_get_element_at_index(list, i))->value;
+        }
+        if (count == 5)
+            break;
+    }
+    return avg / count;
+}
+
+time_t datamgr_get_ts(sensor_id_t sensor_id, dplist_t *list)
+{
+    time_t ts = 0;
+    for (int i = 0; i < dpl_size(list); i++)
+    {
+        if (((my_element_t *)dpl_get_element_at_index(list, i))->sensor_id == sensor_id)
+        {
+            if (((my_element_t *)dpl_get_element_at_index(list, i))->ts > ts)
+                ts = ((my_element_t *)dpl_get_element_at_index(list, i))->ts;
+        }
+    }
+    return ts;
+}
+
+int datamgr_get_total_sensors(dplist_t *list)
+{
+    int count = 0;
+    for (int i = 0; i < dpl_size(list); i++)
+    {
+        if (((my_element_t *)dpl_get_element_at_index(list, i))->sensor_id != ((my_element_t *)dpl_get_element_at_index(list, i + 1))->sensor_id)
+            count++;
+    }
+    return count;
+}
+
+void *element_copy(void *element)
+{
+    my_element_t *copy = malloc(sizeof(my_element_t));
+    assert(copy != NULL);
+    copy->sensor_id = ((my_element_t *)element)->sensor_id;
+    copy->value = ((my_element_t *)element)->value;
+    copy->avg = ((my_element_t *)element)->avg;
+    copy->ts = ((my_element_t *)element)->ts;
+    return (void *)copy;
+}
+
+void element_free(void **element)
+{
+    free(*element);
+    *element = NULL;
+}
+
+int element_compare(void *x, void *y)
+{
+    return ((((my_element_t *)x)->sensor_id < ((my_element_t *)y)->sensor_id) ? -1 : (((my_element_t *)x)->sensor_id == ((my_element_t *)y)->sensor_id) ? 0
+                                                                                                                                                        : 1);
+}
+
+----- End of datamgr.c -----
+
+----- Start of main.c -----
+/**
+ * \author Wentai Ye
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <time.h>
+#include <sys/wait.h>
+#include "config.h"
+#include "connmgr.h"
+#include "datamgr.h"
+#include "sensor_db.h"
+#include "sbuffer.h"
+
+int cur_conn = 0;           // Number of current connections
+bool quit = false;          // Flag for the main process to quit
+sbuffer_t *sbuffer = NULL;  // Shared buffer
+int fd[2];                  // Pipe between parent and child process(logger)
+static int seq = 0;         // Sequence number of the log file
+static char log_rmsg[SIZE]; // Message recieved from the pipe
+static char log_tmsg[SIZE]; // Message to be sent to the pipe
+
+void append_log(char *msg);
+
+int main(int argc, char *argv[])
+{
+    /**************************************************************
+     * The port of this TCP connection is given as a command line
+     * argument at start-up of the main process, e.g. ./server 1234.
+     **************************************************************/
+    if (argc != 2) // Check the number of arguments
+    {
+        perror("Usage: ./main port");
+        exit(EXIT_FAILURE);
+    }
+    int port = atoi(argv[1]);
+    if (port < MIN_PORT || port > MAX_PORT) // Check the port number
+    {
+        perror("Port number should be between 1024 and 65535");
+        exit(EXIT_FAILURE);
+    }
+
+    /**********************************************************************
+     *A shared data structure is used for communication between all threads.
+     ***********************************************************************/
+    sbuffer_init(&sbuffer); // Initialize the shared buffer
+
+    /****************************************************************************************
+     * The sensor gateway consists of a main process and a log process.
+     * The log process receives log-events from the main process using a pipe.
+     * All threads of the server process can generate log-events and write these to the pipe.
+     ****************************************************************************************/
+    if (pipe(fd) == -1) // Create a pipe between parent and child process(logger)
+    {
+        perror("pipe()");
+        exit(EXIT_FAILURE);
+    }
+    pthread_mutex_init(&mutex_pipe, NULL); // Initialize the mutex for the log file
+
+    /************************************************************************
+     * The main process runs three threads at startup: the connection manager,
+     * the datamanager, and the storage manager thread.
+     ************************************************************************/
+    pthread_t tid_connmgr, tid_datamgr, tid_storagemgr;
+    if (pthread_create(&tid_connmgr, NULL, connmgr, &port) != 0)
+    {
+        perror("pthread_create()");
+        exit(EXIT_FAILURE);
+    }
+    if (pthread_create(&tid_datamgr, NULL, datamgr, NULL) != 0)
+    {
+        perror("pthread_create()");
+        exit(EXIT_FAILURE);
+    }
+    if (pthread_create(&tid_storagemgr, NULL, storagemgr, NULL) != 0)
+    {
+        perror("pthread_create()");
+        exit(EXIT_FAILURE);
+    }
+
+    /****************************************************************************
+     * The main process also runs a log process that receives log-events from the
+     * main process using a pipe.
+     ****************************************************************************/
+    pid_t pid; // Process ID
+    pid = fork();
+    if (pid < 0)
+    {
+        perror("fork()");
+        exit(EXIT_FAILURE);
+    }
+    else if (pid == 0)
+    { // Child process
+        FILE *fp = fopen("gateway.log", "w");
+        if (fp == NULL)
+        {
+            perror("fopen()");
+            exit(EXIT_FAILURE);
+        }
+        fclose(fp);
+        close(fd[WRITE_END]);
+
+        while (read(fd[READ_END], log_rmsg, SIZE) > 0)
+        {
+            append_log(log_rmsg);
+            fflush(NULL);
+        }
+        close(fd[READ_END]);
+        exit(EXIT_SUCCESS);
+    }
+    else
+    { // Parent process
+        close(fd[READ_END]);
+        time_t tik;
+        time(&tik); // Record the time of gataway startup
+        while (1)
+        {
+            if (cur_conn != 0)
+            {
+                time(&tik); // Record the time of the last connection
+            }
+            else if (time(NULL) - tik > TIMEOUT)
+            { // If no connection for TIME_OUT seconds, shutdown the gateway
+                quit = true;
+                pthread_cancel(tid_connmgr);
+                break;
+            }
+        }
+        pthread_join(tid_connmgr, NULL);
+        pthread_join(tid_datamgr, NULL);
+        pthread_join(tid_storagemgr, NULL);
+        puts("All threads have been terminated.");
+        pthread_mutex_lock(&mutex_pipe);
+        sprintf(log_tmsg, "The gateway has been shut down.");
+        write(fd[WRITE_END], log_tmsg, SIZE);
+        pthread_mutex_unlock(&mutex_pipe);
+        close(fd[WRITE_END]);
+        sbuffer_free(&sbuffer);
+        wait(NULL);
+    }
+    exit(EXIT_SUCCESS);
+}
+
+/*************************************************************************
+ * A log-event contains an ASCII info message describing the type of event.
+ * For eachlog-event received, the log process writes an ASCII message
+ * to a new line in a log file called “gateway.log”.
+ * \param rmsg The log message
+ *************************************************************************/
+void append_log(char *rmsg)
+{
+    FILE *fp;
+    fp = fopen("gateway.log", "a");
+    if (fp == NULL)
+    {
+        perror("fopen()");
+        exit(EXIT_FAILURE);
+    }
+
+    char time_buffer[128];
+    time_t rawtime; // time_t is a long int
+    time(&rawtime); // get current time
+    strftime(time_buffer, sizeof(time_buffer), "%d/%m/%Y %H:%M:%S", localtime(&rawtime));
+    fprintf(fp, "%d %s %s\n", seq++, time_buffer, rmsg);
+    fclose(fp);
+}
+
+----- End of main.c -----
+
+----- Start of file_creator.c -----
+/**
+ * \author Luc Vandeurzen
+ */
+
+#include <stdio.h>
+#include <stdint.h>
+#include <inttypes.h>
+#include <time.h>
+#include <stdlib.h>
+#include <unistd.h>
+#define DEBUG 1
+
+
+#define FILE_ERROR(fp, error_msg)    do {               \
+                      if ((fp)==NULL) {                 \
+                        printf("%s\n",(error_msg));     \
+                        exit(EXIT_FAILURE);             \
+                      }                                 \
+                    } while(0)
+
+
+#define NUM_MEASUREMENTS    100
+#define SLEEP_TIME          30      // every SLEEP_TIME seconds, sensors wake up and measure temperature
+#define NUM_SENSORS         8       // also defines number of rooms (currently 1 room = 1 sensor)
+#define TEMP_DEV            5       // max deviation from previous temperature in 0.1 centigrade
+
+uint16_t room_id[NUM_SENSORS] = { 1, 2, 3, 4, 11, 12, 13, 14 };
+uint16_t sensor_id[NUM_SENSORS] = { 15, 21, 37, 49, 112, 129, 132, 142 };
+double sensor_temperature[NUM_SENSORS] = { 15, 17, 18, 19, 20, 23, 24, 25 }; // starting temperatures
+
+int main(int argc, char* argv[]) {
+    FILE* fp_text, * fp_bin;
+    int i, j;
+    time_t starttime = time(&starttime);
+    srand48(time(NULL));
+
+    // generate ascii file room_sensor.map
+    fp_text = fopen("room_sensor.map", "w");
+    FILE_ERROR(fp_text, "Couldn't create room_sensor.map\n");
+    for (i = 0; i < NUM_SENSORS; i++) {
+        fprintf(fp_text, "%" PRIu16 " %" PRIu16 "\n", room_id[i], sensor_id[i]);
+    }
+    fclose(fp_text);
+
+    // generate binary file sensor_data and corresponding log file
+    fp_bin = fopen("sensor_data", "wb");
+    FILE_ERROR(fp_bin, "Couldn't create sensor_data\n");
+
+#ifdef DEBUG // save sensor data also in text format for test purposes
+    fp_text = fopen("sensor_data_text", "w");
+    FILE_ERROR(fp_text, "Couldn't create sensor_data in text\n");
+#endif
+
+    for (i = 0; i < NUM_MEASUREMENTS; i++, starttime += SLEEP_TIME) {
+        for (j = 0; j < NUM_SENSORS; j++) {
+            // write current temperatures to file
+            fwrite(sensor_id + j, sizeof(sensor_id[0]), 1, fp_bin);
+            fwrite(&(sensor_temperature[j]), sizeof(sensor_temperature[0]), 1, fp_bin);
+            fwrite(&starttime, sizeof(time_t), 1, fp_bin);
+#ifdef DEBUG
+            fprintf(fp_text, "%" PRIu16 " %g %ld\n", sensor_id[j], sensor_temperature[j], (long)starttime);
+#endif
+
+            // get new temperature: still needs some fine-tuning ...
+            sensor_temperature[j] = sensor_temperature[j] + TEMP_DEV * ((drand48() - 0.5) / 10);
+        }
+    }
+
+    fclose(fp_bin);
+#ifdef DEBUG
+    fclose(fp_text);
+#endif
+
+    return 0;
+}
+
+
+----- End of file_creator.c -----
+
+----- Start of sensor_db.h -----
+/**
+ * \author Wentai Ye
+ */
+
+#ifndef _SENSOR_DB_H_
+#define _SENSOR_DB_H_
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <time.h>
+#include <stdint.h>
+#include <inttypes.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <stdbool.h>
+#include "config.h"
+#include "sbuffer.h"
+
+extern int fd[2]; // pipe file descriptor
+extern sbuffer_t *sbuffer;
+extern pthread_mutex_t mutex_pipe;
+extern bool quit;
+
+/**
+ * The storage manager thread reads sensor measurements from the shared data buffer
+ * and inserts them into a csv-file “data.csv”
+ */
+void *storagemgr();
+
+/*
+open a text file with a given name, and select open mode.
+param filename: the name of the file to open
+param append: if true, the data should be appended to the existing file, if false, the file should be overwritten
+*/
+FILE *open_db(char *filename, bool append);
+
+/*
+append a single sensor reading to the csv file.
+param f: the file pointer to the csv file
+param data: the sensor reading to append
+*/
+void insert_sensor(FILE *f, sensor_data_t *data);
+
+/*
+close the csv file.
+param f: the file pointer to the csv file
+*/
+int close_db(FILE *f);
+
+#endif /* _SENSOR_DB_H_ */
+
+----- End of sensor_db.h -----
+
+----- Start of sensor_node.c -----
+/**
+ * \author Luc Vandeurzen
+ */
+
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include "config.h"
+#include "lib/tcpsock.h"
+
+// conditional compilation option to control the number of measurements this sensor node wil generate
+#if (LOOPS > 1)
+#define UPDATE(i) (i--)
+#else
+#define LOOPS 1
+#define UPDATE(i) (void)0 // create infinit loop
+#endif
+
+// conditional compilation option to log all sensor data to a text file
+#ifdef LOG_SENSOR_DATA
+
+#define LOG_FILE "sensor_log"
+
+#define LOG_OPEN()                                \
+  FILE *fp_log;                                   \
+  do                                              \
+  {                                               \
+    fp_log = fopen(LOG_FILE, "w");                \
+    if ((fp_log) == NULL)                         \
+    {                                             \
+      printf("%s\n", "couldn't create log file"); \
+      exit(EXIT_FAILURE);                         \
+    }                                             \
+  } while (0)
+
+#define LOG_PRINTF(sensor_id, temperature, timestamp)                                           \
+  do                                                                                            \
+  {                                                                                             \
+    fprintf(fp_log, "%" PRIu16 " %g %ld\n", (sensor_id), (temperature), (long int)(timestamp)); \
+    fflush(fp_log);                                                                             \
+  } while (0)
+
+#define LOG_CLOSE() fclose(fp_log);
+
+#else
+#define LOG_OPEN(...) (void)0
+#define LOG_PRINTF(...) (void)0
+#define LOG_CLOSE(...) (void)0
+#endif
+
+#define INITIAL_TEMPERATURE 20
+#define TEMP_DEV 5 // max afwijking vorige temperatuur in 0.1 celsius
+
+void print_help(void);
+
+/**
+ * For starting the sensor node 4 command line arguments are needed. These should be given in the order below
+ * and can then be used through the argv[] variable
+ *
+ * argv[1] = sensor ID
+ * argv[2] = sleep time
+ * argv[3] = server IP
+ * argv[4] = server port
+ */
+
+int main(int argc, char *argv[])
+{
+  sensor_data_t data;
+  int server_port;
+  char server_ip[] = "000.000.000.000";
+  tcpsock_t *client;
+  int i, bytes, sleep_time;
+
+  LOG_OPEN();
+
+  if (argc != 5)
+  {
+    print_help();
+    exit(EXIT_SUCCESS);
+  }
+  else
+  {
+    // to do: user input validation!
+    data.id = atoi(argv[1]);
+    sleep_time = atoi(argv[2]);
+    strncpy(server_ip, argv[3], strlen(server_ip));
+    server_port = atoi(argv[4]);
+  }
+
+  srand48(time(NULL));
+
+  // open TCP connection to the server; server is listening to SERVER_IP and PORT
+  if (tcp_active_open(&client, server_port, server_ip) != TCP_NO_ERROR)
+    exit(EXIT_FAILURE);
+  data.value = INITIAL_TEMPERATURE;
+  i = LOOPS;
+  while (i)
+  {
+    data.value = data.value + TEMP_DEV * ((drand48() - 0.5) / 10);
+    time(&data.ts);
+    // send data to server in this order (!!): <sensor_id><temperature><timestamp>
+    // remark: don't send as a struct!
+    bytes = sizeof(data.id);
+    if (tcp_send(client, (void *)&data.id, &bytes) != TCP_NO_ERROR)
+      exit(EXIT_FAILURE);
+    bytes = sizeof(data.value);
+    if (tcp_send(client, (void *)&data.value, &bytes) != TCP_NO_ERROR)
+      exit(EXIT_FAILURE);
+    bytes = sizeof(data.ts);
+    if (tcp_send(client, (void *)&data.ts, &bytes) != TCP_NO_ERROR)
+      exit(EXIT_FAILURE);
+    LOG_PRINTF(data.id, data.value, data.ts);
+    sleep(sleep_time);
+    UPDATE(i);
+  }
+
+  if (tcp_close(&client) != TCP_NO_ERROR)
+    exit(EXIT_FAILURE);
+
+  LOG_CLOSE();
+
+  exit(EXIT_SUCCESS);
+}
+
+/**
+ * Helper method to print a message on how to use this application
+ */
+void print_help(void)
+{
+  printf("Use this program with 4 command line options: \n");
+  printf("\t%-15s : a unique sensor node ID\n", "\'ID\'");
+  printf("\t%-15s : node sleep time (in sec) between two measurements\n", "\'sleep time\'");
+  printf("\t%-15s : TCP server IP address\n", "\'server IP\'");
+  printf("\t%-15s : TCP server port number\n", "\'server port\'");
+}
+
+----- End of sensor_node.c -----
+
+----- Start of sbuffer.h -----
+/**
+ * \author Wentai Ye
+ */
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <pthread.h>
+#include <stdbool.h>
+#include "config.h"
+
+#ifndef _SBUFFER_H_
+#define _SBUFFER_H_
+
+#define SBUFFER_FAILURE -1
+#define SBUFFER_SUCCESS 0
+#define SBUFFER_NO_DATA 1
+
+typedef struct sbuffer sbuffer_t;
+typedef struct sbuffer_node sbuffer_node_t;
+
+/**
+ * Allocates and initializes a new shared sbuffer
+ * \param sbuffer a double pointer to the sbuffer that needs to be initialized
+ * \return SBUFFER_SUCCESS on success and SBUFFER_FAILURE if an error occurred
+ */
+int sbuffer_init(sbuffer_t **sbuffer);
+
+/**
+ * All allocated resources are freed and cleaned up
+ * \param sbuffer a double pointer to the sbuffer that needs to be freed
+ * \return SBUFFER_SUCCESS on success and SBUFFER_FAILURE if an error occurred
+ */
+int sbuffer_free(sbuffer_t **sbuffer);
+
+/**
+ * Removes the first sensor data in 'sbuffer' (at the 'head') and returns this sensor data as '*data'
+ * If 'sbuffer' is empty, the function doesn't block until new sensor data becomes available but returns SBUFFER_NO_DATA
+ * \param sbuffer a pointer to the sbuffer that is used
+ * \param data a pointer to pre-allocated sensor_data_t space, the data will be copied into this structure. No new memory is allocated for 'data' in this function.
+ * \return SBUFFER_SUCCESS on success and SBUFFER_FAILURE if an error occurred
+ */
+int sbuffer_remove(sbuffer_t *sbuffer, sensor_data_t *data);
+
+/**
+ * Removes the first sensor data in 'sbuffer' (at the 'head') and returns this sensor data as '*data'
+ * If 'sbuffer' is empty, the function blocks until new sensor data becomes available
+ * \param sbuffer a pointer to the sbuffer that is used
+ * \param data a pointer to pre-allocated sensor_data_t space, the data will be copied into this structure. No new memory is allocated for 'data' in this function.
+ * \return SBUFFER_SUCCESS on success and SBUFFER_FAILURE if an error occurred
+ */
+int sbuffer_read(sbuffer_t *sbuffer, sensor_data_t *data);
+
+/**
+ * Inserts the sensor data in 'data' at the end of 'sbuffer' (at the 'tail')
+ * \param sbuffer a pointer to the sbuffer that is used
+ * \param data a pointer to sensor_data_t data, that will be copied into the sbuffer
+ * \return SBUFFER_SUCCESS on success and SBUFFER_FAILURE if an error occured
+ */
+int sbuffer_insert(sbuffer_t *sbuffer, sensor_data_t *data);
+
+#endif //_SBUFFER_H_
+
+----- End of sbuffer.h -----
+
+----- Start of dplist.c -----
+/**
+ * \author Wentai Ye
+ */
+
+#include "dplist.h"
+
+// definition of error codes
+#define DPLIST_NO_ERROR 0      // no error
+#define DPLIST_MEMORY_ERROR 1  // error due to mem alloc failure
+#define DPLIST_INVALID_ERROR 2 // error due to a list operation applied on a NULL list
+
+// definition of error messages
+#ifdef DEBUG
+#define DEBUG_PRINTF(...)                                                                   \
+    do                                                                                      \
+    {                                                                                       \
+        fprintf(stderr, "\nIn %s - function %s at line %d:", __FILE__, __func__, __LINE__); \
+        fprintf(stderr, __VA_ARGS__);                                                       \
+        fflush(stderr);                                                                     \
+    } while (0)
+#else
+#define DEBUG_PRINTF(...) (void)0
+#endif
+
+// definition of error handling
+#define DPLIST_ERR_HANDLER(condition, err_code)   \
+    do                                            \
+    {                                             \
+        if ((condition))                          \
+            DEBUG_PRINTF(#condition " failed\n"); \
+        assert(!(condition));                     \
+    } while (0)
+
+// The real definition of struct node
+struct dplist_node
+{
+    dplist_node_t *prev, *next;
+    void *element;
+};
+
+// The real definition of struct list
+struct dplist
+{
+    dplist_node_t *head;
+    void *(*element_copy)(void *src_element);
+    void (*element_free)(void **element);
+    int (*element_compare)(void *x, void *y);
+};
+
+dplist_t *dpl_create( // callback functions
+    void *(*element_copy)(void *src_element),
+    void (*element_free)(void **element),
+    int (*element_compare)(void *x, void *y))
+{
+    static dplist_t *list;
+    list = malloc(sizeof(struct dplist));
+    DPLIST_ERR_HANDLER(list == NULL, DPLIST_MEMORY_ERROR);
+    list->head = NULL;
+    list->element_copy = element_copy;
+    list->element_free = element_free;
+    list->element_compare = element_compare;
+    return list;
+}
+
+void dpl_free(dplist_t **list, bool free_element)
+{
+    if (*list == NULL)
+        return;
+    if ((*list)->head == NULL)
+    {
+        free(*list);
+        *list = NULL;
+        return;
+    }
+    dplist_node_t *current = (*list)->head;
+    dplist_node_t *next = NULL;
+    while (current != NULL)
+    {
+        next = current->next;
+        if (free_element)
+            (*list)->element_free(&current->element);
+        free(current);
+        current = next;
+    }
+    free(*list);
+    *list = NULL;
+}
+
+dplist_t *dpl_insert_at_index(dplist_t *list, void *element, int index, bool insert_copy)
+{
+    if (list == NULL)
+        return NULL;
+    dplist_node_t *new_node = malloc(sizeof(dplist_node_t));
+    DPLIST_ERR_HANDLER(new_node == NULL, DPLIST_MEMORY_ERROR);
+    if (insert_copy)
+        new_node->element = list->element_copy(element);
+    else
+        new_node->element = element;
+    if (index == 0)
+    {
+        new_node->next = list->head;
+        new_node->prev = NULL;
+        if (list->head != NULL)
+            list->head->prev = new_node;
+        list->head = new_node;
+    }
+    else
+    {
+        dplist_node_t *current = list->head;
+        int i = 0;
+        while (i < index - 1 && current != NULL)
+        {
+            current = current->next;
+            i++;
+        }
+        if (current == NULL)
+        {
+            free(new_node);
+            return NULL;
+        }
+        new_node->next = current->next;
+        new_node->prev = current;
+        if (current->next != NULL)
+            current->next->prev = new_node;
+        current->next = new_node;
+    }
+    return list;
+}
+
+dplist_t *dpl_remove_at_index(dplist_t *list, int index, bool free_element)
+{
+    DPLIST_ERR_HANDLER(list == NULL, DPLIST_INVALID_ERROR);
+    dplist_node_t *current = list->head;
+    int i = 0;
+    while (i < index && current != NULL)
+    {
+        current = current->next;
+        i++;
+    }
+    if (current == NULL)
+        return NULL;
+    if (current->prev == NULL)
+        list->head = current->next;
+    else
+        current->prev->next = current->next;
+    if (current->next != NULL)
+        current->next->prev = current->prev;
+    if (free_element)
+        list->element_free(&current->element);
+    free(current);
+    return list;
+}
+
+int dpl_size(dplist_t *list)
+{
+    if (list == NULL)
+        return -1;
+    dplist_node_t *current = list->head;
+    int size = 0;
+    while (current != NULL)
+    {
+        size++;
+        current = current->next;
+    }
+    return size;
+}
+
+void *dpl_get_element_at_index(dplist_t *list, int index)
+{
+    if (list == NULL)
+        return NULL;
+    dplist_node_t *current = list->head;
+    int i = 0;
+    while (i < index && current != NULL)
+    {
+        current = current->next;
+        i++;
+    }
+    if (current == NULL)
+        return NULL;
+    return current->element;
+}
+
+int dpl_get_index_of_element(dplist_t *list, void *element)
+{
+    if (list == NULL)
+        return -1;
+    dplist_node_t *current = list->head;
+    int i = 0;
+    while (current != NULL)
+    {
+        if (list->element_compare(current->element, element) == 0)
+            return i;
+        current = current->next;
+        i++;
+    }
+    return -1;
+}
+
+dplist_node_t *dpl_get_reference_at_index(dplist_t *list, int index)
+{
+    if (list == NULL)
+        return NULL;
+    dplist_node_t *current = list->head;
+    int i = 0;
+    while (i < index && current != NULL)
+    {
+        current = current->next;
+        i++;
+    }
+    if (current == NULL)
+        return NULL;
+    return current;
+}
+
+void *dpl_get_element_at_reference(dplist_t *list, dplist_node_t *reference)
+{
+    if (list == NULL || reference == NULL)
+        return NULL;
+    DPLIST_ERR_HANDLER(reference == NULL, DPLIST_INVALID_ERROR);
+    dplist_node_t *current = list->head;
+    while (current != NULL)
+    {
+        if (current == reference)
+            return current->element;
+        current = current->next;
+    }
+    return NULL;
+}
+----- End of dplist.c -----
+
+----- Start of tcpsock.h -----
+/**
+ * \author Luc Vandeurzen
+ */
+#define _GNU_SOURCE
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#include <stdbool.h>
+
+#ifndef __TCPSOCK_H__
+#define __TCPSOCK_H__
+
+#define MIN_PORT 1024
+#define MAX_PORT 65536
+#define TCP_NO_ERROR 0
+#define TCP_SOCKET_ERROR 1      // invalid socket
+#define TCP_ADDRESS_ERROR 2     // invalid port and/or IP address
+#define TCP_SOCKOP_ERROR 3      // socket operator (socket, listen, bind, accept,...) error
+#define TCP_CONNECTION_CLOSED 4 // send/receive indicate connection is closed
+#define TCP_MEMORY_ERROR 5      // mem alloc error
+#define MAX_PENDING 10
+
+extern bool quit;
+
+typedef struct tcpsock tcpsock_t;
+
+/**
+ * Creates a new socket and opens this socket in 'passive listening mode' (waiting for an active connection setup request)
+ * The socket is bound to port number 'port' and to any active IP interface of the system
+ * The number of pending connection setup requests is set to MAX_PENDING
+ * This function is typically called by a server
+ * If port 'port' is not between MIN_PORT and MAX_PORT, TCP_ADDRESS_ERROR is returned
+ * If memory allocation for the newly created socket fails, TCP_MEMORY_ERROR is returned
+ * If a socket operation (socket, listen, bind, accept,...) fails, TCP_SOCKOP_ERROR is returned
+ * \param socket a double pointer, that will be filled out with the newly created socket
+ * \param port a port number between MIN_PORT and MAX_PORT
+ * \return TCP_NO_ERROR if no error occurs during execution
+ */
+int tcp_passive_open(tcpsock_t **socket, int port);
+
+/**
+ * Creates a new TCP socket and opens a TCP connection to the system with IP address 'remote_ip' on port 'remote_port'
+ * The newly created socket is return as '*socket'
+ * This function is typically called by a client
+ * If port 'remote_port' is not between MIN_PORT and MAX_PORT, TCP_ADDRESS_ERROR is returned
+ * If 'remote_ip' is NULL or an IP address operation (inet_aton, ...) fails, TCP_ADDRESS_ERROR is returned
+ * If memory allocation for the newly created socket fails, TCP_MEMORY_ERROR is returned
+ * If a socket operation (socket, listen, bind, accept,...) fails, TCP_SOCKOP_ERROR is returned
+ * \param socket a double pointer, that will be filled out with the newly created socket
+ * \param remote_port the remote port number to connect to
+ * \param remote_ip the remote ip address to connect to
+ * \return TCP_NO_ERROR if no error occurs during execution
+ */
+int tcp_active_open(tcpsock_t **socket, int remote_port, char *remote_ip);
+
+/**
+ * The socket '*socket' is closed , allocated resources are freed and '*socket' is set to NULL
+ * If '*socket' is connected, a TCP shutdown on the connection is executed
+ * If 'socket' or '*socket' is NULL, nothing is done and TCP_SOCKET_ERROR is returned
+ * If '*socket' is not a valid socket, the result of the function is undefined
+ * \param socket a double pointer, to the socket that needs to be closed
+ * \return TCP_NO_ERROR if no error occurs during execution
+ */
+int tcp_close(tcpsock_t **socket);
+
+/**
+ * Puts the socket 'socket' in a blocking wait mode
+ * Returns when an incoming TCP connection setup request is received
+ * A newly created socket identifying the remote system that initiated the connection request is returned as '*new_socket'
+ * If memory allocation for the new socket fails, TCP_MEMORY_ERROR is returned
+ * If a socket operation (socket, listen, bind, accept, ...) fails, TCP_SOCKOP_ERROR is returned
+ * If 'socket' is NULL or not yet bound, TCP_SOCKET_ERROR is returned
+ * \param socket the socket that needs to be monitored for a new incomming connection
+ * \param new_socket a double pointer, that will be filled out with the newly created socket for the connection with the client
+ * \return TCP_NO_ERROR if no error occurs during execution
+ */
+int tcp_wait_for_connection(tcpsock_t *socket, tcpsock_t **new_socket);
+
+/**
+ * Initiates a send command on the socket 'socket' and tries to send the total '*buf_size' bytes of data in 'buffer' (recall that the function might block for a while)
+ * The function sets '*buf_size' to the number of bytes that were really sent, which might be less than the initial '*buf_size'
+ * If a socket error happens while sending the data in 'buffer' or the connection is closed, TCP_SOCKOP_ERROR or TCP_CONNECTION_CLOSED is returned, respectively
+ * If 'socket' is NULL or not yet bound, TCP_SOCKET_ERROR is returned
+ * \param socket the socket where the data needs to be sent on
+ * \param buffer a pointer to the buffer that holds the data that needs to be sent
+ * \param buf_size the amount of bytes that need to be sent from the buffer
+ * \return TCP_NO_ERROR if no error occurs during execution
+ */
+int tcp_send(tcpsock_t *socket, void *buffer, int *buf_size);
+
+/**
+ * Initiates a receive command on the socket 'socket' and tries to receive the total '*buf_size' bytes of data in 'buffer' (recall that the function might block for a while)
+ * The function sets '*buf_size' to the number of bytes that were really received, which might be less than the inital '*buf_size'
+ * If a socket error happens while receiving data or the connection is closed, TCP_SOCKOP_ERROR or TCP_CONNECTION_CLOSED is returned, respectively
+ * If 'socket' is NULL or not yet bound, TCP_SOCKET_ERROR is returned
+ * \param socket the socket where the data needs to be received from
+ * \param buffer a pointer to the buffer that can store the data that is received
+ * \param buf_size the amount of bytes that will be read from the socket
+ * \return TCP_NO_ERROR if no error occurs during execution
+ */
+int tcp_receive(tcpsock_t *socket, void *buffer, int *buf_size);
+
+/**
+ * Set '*ip_addr' to the IP address of 'socket' (could be NULL if the IP address is not set)
+ * No memory allocation is done (pointer reference assignment!), hence, no free must be called to avoid a memory leak
+ * If 'socket' is NULL or not yet bound, TCP_SOCKET_ERROR is returned
+ * \param socket the socket to get the ip address from
+ * \param ip_addr a pointer to a char* that can hold the ip address
+ * \return TCP_NO_ERROR if no error occurs during execution
+ */
+int tcp_get_ip_addr(tcpsock_t *socket, char **ip_addr);
+
+/**
+ * Return the port number of the 'socket'
+ * If 'socket' is NULL or not yet bound, TCP_SOCKET_ERROR is returned
+ * \param socket the socket to get the port number from
+ * \param port a pointer to an int that can hold the port number
+ * \return TCP_NO_ERROR if no error occurs during execution
+ */
+int tcp_get_port(tcpsock_t *socket, int *port);
+
+/**
+ * Return the socket descriptor of the 'socket'
+ * If 'socket' is NULL or not yet bound, TCP_SOCKET_ERROR is returned
+ * \param socket the socket to get the socket descriptor from
+ * \param port a pointer to an int that can hold the socket descriptor
+ * \return TCP_NO_ERROR if no error occurs during execution
+ */
+int tcp_get_sd(tcpsock_t *socket, int *sd);
+
+#endif //__TCPSOCK_H__
+
+----- End of tcpsock.h -----
+
+----- Start of dplist.h -----
+/**
+ * \author Wentai Ye
+ */
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
+#include <stdbool.h>
+
+#ifndef _DPLIST_H_
+#define _DPLIST_H_
+
+/**
+ * dplist_t is a struct containing at least a head pointer to the start of the list;
+ */
+typedef struct dplist dplist_t;
+
+typedef struct dplist_node dplist_node_t;
+
+/* General remark on error handling
+ * All functions below will:
+ * - use assert() to check if memory allocation was successfully.
+ */
+
+/** Create and allocate memory for a new list
+ * \param element_copy callback function to duplicate 'element'; If needed allocated new memory for the duplicated element.
+ * \param element_free callback function to free memory allocated to element
+ * \param element_compare callback function to compare two element elements; returns -1 if x<y, 0 if x==y, or 1 if x>y
+ * \return a pointer to a newly-allocated and initialized list.
+ */
+dplist_t *dpl_create(
+    void *(*element_copy)(void *element),
+    void (*element_free)(void **element),
+    int (*element_compare)(void *x, void *y));
+
+/** Deletes all elements in the list
+ * - Every list node of the list needs to be deleted. (free memory)
+ * - The list itself also needs to be deleted. (free all memory)
+ * - '*list' must be set to NULL.
+ * \param list a double pointer to the list
+ * \param free_element if true call element_free() on the element of the list node to remove
+ */
+void dpl_free(dplist_t **list, bool free_element);
+
+/** Returns the number of elements in the list.
+ * - If 'list' is is NULL, -1 is returned.
+ * \param list a pointer to the list
+ * \return the size of the list
+ */
+int dpl_size(dplist_t *list);
+
+/** Inserts a new list node containing an 'element' in the list at position 'index'
+ * - the first list node has index 0.
+ * - If 'index' is 0 or negative, the list node is inserted at the start of 'list'.
+ * - If 'index' is bigger than the number of elements in the list, the list node is inserted at the end of the list.
+ * - If 'list' is is NULL, NULL is returned.
+ * \param list a pointer to the list
+ * \param element a pointer to the data that needs to be inserted
+ * \param index the position at which the element should be inserted in the list
+ * \param insert_copy if true use element_copy() to make a copy of 'element' and use the copy in the new list node, otherwise the given element pointer is added to the list
+ * \return a pointer to the list or NULL
+ */
+dplist_t *dpl_insert_at_index(dplist_t *list, void *element, int index, bool insert_copy);
+
+/** Removes the list node at index 'index' from the list.
+ * - The list node itself should always be freed.
+ * - If 'index' is 0 or negative, the first list node is removed.
+ * - If 'index' is bigger than the number of elements in the list, the last list node is removed.
+ * - If the list is empty, return the unmodified list.
+ * - If 'list' is is NULL, NULL is returned.
+ * \param list a pointer to the list
+ * \param index the position at which the node should be removed from the list
+ * \param free_element if true, call element_free() on the element of the list node to remove
+ * \return a pointer to the list or NULL
+ */
+dplist_t *dpl_remove_at_index(dplist_t *list, int index, bool free_element);
+
+/** Returns a reference to the list node with index 'index' in the list.
+ * - If 'index' is 0 or negative, a reference to the first list node is returned.
+ * - If 'index' is bigger than the number of list nodes in the list, a reference to the last list node is returned.
+ * - If the list is empty, NULL is returned.
+ * - If 'list' is is NULL, NULL is returned.
+ * \param list a pointer to the list
+ * \param index the position of the node for which the reference is returned
+ * \return a pointer to the list node at the given index or NULL
+ */
+dplist_node_t *dpl_get_reference_at_index(dplist_t *list, int index);
+
+/** Returns the list element contained in the list node with index 'index' in the list.
+ * - return is not returning a copy of the element with index 'index', i.e. 'element_copy()' is not used.
+ * - If 'index' is 0 or negative, the element of the first list node is returned.
+ * - If 'index' is bigger than the number of elements in the list, the element of the last list node is returned.
+ * - If the list is empty, NULL is returned.
+ * - If 'list' is NULL, NULL is returned.
+ * \param list a pointer to the list
+ * \param index the position of the node for which the element is returned
+ * \return a pointer to the element at the given index or NULL
+ */
+void *dpl_get_element_at_index(dplist_t *list, int index);
+
+/** Returns an index to the first list node in the list containing 'element'.
+ * - the first list node has index 0.
+ * - Use 'element_compare()' to search 'element' in the list, a match is found when 'element_compare()' returns 0.
+ * - If 'element' is not found in the list, -1 is returned.
+ * - If 'list' is NULL, NULL is returned.
+ * \param list a pointer to the list
+ * \param element the element to look for
+ * \return the index of the element that matches 'element'
+ */
+int dpl_get_index_of_element(dplist_t *list, void *element);
+
+/** Returns the element contained in the list node with reference 'reference' in the list.
+ * - If the list is empty, NULL is returned.
+ * - If 'list' is is NULL, NULL is returned.
+ * - If 'reference' is NULL, NULL is returned.
+ * - If 'reference' is not an existing reference in the list, NULL is returned.
+ * \param list a pointer to the list
+ * \param reference a pointer to a certain node in the list
+ * \return the element contained in the list node or NULL
+ */
+void *dpl_get_element_at_reference(dplist_t *list, dplist_node_t *reference);
+
+#endif // _DPLIST_H_
+
+----- End of dplist.h -----
+
+----- Start of tcpsock.c -----
+/**
+ * \author Luc Vandeurzen
+ */
+
+#include "tcpsock.h"
+
+// #define DEBUG
+
+#ifdef DEBUG
+#define TCP_DEBUG_PRINTF(condition, ...)                                                         \
+    do                                                                                           \
+    {                                                                                            \
+        if ((condition))                                                                         \
+        {                                                                                        \
+            fprintf(stderr, "\nIn %s - function %s at line %d: ", __FILE__, __func__, __LINE__); \
+            fprintf(stderr, __VA_ARGS__);                                                        \
+        }                                                                                        \
+    } while (0)
+#else
+#define TCP_DEBUG_PRINTF(...) (void)0
+#endif
+
+#define TCP_ERR_HANDLER(condition, ...)                                          \
+    do                                                                           \
+    {                                                                            \
+        if ((condition))                                                         \
+        {                                                                        \
+            TCP_DEBUG_PRINTF(1, "error condition \"" #condition "\" is true\n"); \
+            __VA_ARGS__;                                                         \
+        }                                                                        \
+    } while (0)
+
+#define MAGIC_COOKIE (long)(0xA2E1CF37D35) // used to check if a socket is bounded
+
+#define CHAR_IP_ADDR_LENGTH 16 // 4 numbers of 3 digits, 3 dots and \0
+#define PROTOCOLFAMILY AF_INET // internet protocol suite
+#define TYPE SOCK_STREAM       // streaming protool type
+#define PROTOCOL IPPROTO_TCP   // TCP protocol
+
+/**
+ * Structure for holding the TCP socket information
+ */
+struct tcpsock
+{
+    long cookie; /**< if the socket is bound, cookie should be equal to MAGIC_COOKIE */
+    // remark: the use of magic cookies doesn't guarantee a 'bullet proof' test
+    int sd;        /**< socket descriptor */
+    char *ip_addr; /**< socket IP address */
+    int port;      /**< socket port number */
+};
+
+static tcpsock_t *tcp_sock_create();
+
+int tcp_passive_open(tcpsock_t **sock, int port)
+{
+    int result;
+    struct sockaddr_in addr;
+    TCP_ERR_HANDLER(((port < MIN_PORT) || (port > MAX_PORT)), return TCP_ADDRESS_ERROR);
+    tcpsock_t *s = tcp_sock_create();
+    TCP_ERR_HANDLER(s == NULL, return TCP_MEMORY_ERROR);
+    s->sd = socket(PROTOCOLFAMILY, TYPE, PROTOCOL);
+    TCP_DEBUG_PRINTF(s->sd < 0, "Socket() failed with errno = %d [%s]", errno, strerror(errno));
+    TCP_ERR_HANDLER(s->sd < 0, free(s); return TCP_SOCKOP_ERROR);
+    // Construct the server address structure
+    memset(&addr, 0, sizeof(struct sockaddr_in));
+    addr.sin_family = PROTOCOLFAMILY;
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    addr.sin_port = htons(port);
+    result = bind(s->sd, (struct sockaddr *)&addr, sizeof(addr));
+    TCP_DEBUG_PRINTF(result == -1, "Bind() failed with errno = %d [%s]", errno, strerror(errno));
+    TCP_ERR_HANDLER(result != 0, free(s); return TCP_SOCKOP_ERROR);
+    result = listen(s->sd, MAX_PENDING);
+    TCP_DEBUG_PRINTF(result == -1, "Listen() failed with errno = %d [%s]", errno, strerror(errno));
+    TCP_ERR_HANDLER(result != 0, free(s); return TCP_SOCKOP_ERROR);
+    s->ip_addr = NULL; // address set to INADDR_ANY - not a specific IP address
+    s->port = port;
+    s->cookie = MAGIC_COOKIE;
+    *sock = s;
+    return TCP_NO_ERROR;
+}
+
+int tcp_active_open(tcpsock_t **sock, int remote_port, char *remote_ip)
+{
+    struct sockaddr_in addr;
+    tcpsock_t *client;
+    int length, result;
+    char *p;
+    TCP_ERR_HANDLER(((remote_port < MIN_PORT) || (remote_port > MAX_PORT)),
+                    return TCP_ADDRESS_ERROR); // server port between 0 and MIN_PORT is allowed
+    TCP_ERR_HANDLER(remote_ip == NULL, return TCP_ADDRESS_ERROR);
+    client = tcp_sock_create();
+    TCP_ERR_HANDLER(client == NULL, return TCP_MEMORY_ERROR);
+    client->sd = socket(PROTOCOLFAMILY, TYPE, PROTOCOL);
+    TCP_DEBUG_PRINTF(client->sd < 0, "Socket() failed with errno = %d [%s]", errno, strerror(errno));
+    TCP_ERR_HANDLER(client->sd < 0, free(client); return TCP_SOCKOP_ERROR);
+    /* Construct the server address structure */
+    memset(&addr, 0, sizeof(struct sockaddr_in));
+    addr.sin_family = PROTOCOLFAMILY;
+    result = inet_aton(remote_ip, (struct in_addr *)&addr.sin_addr.s_addr);
+    TCP_ERR_HANDLER(result == 0, free(client); return TCP_ADDRESS_ERROR);
+    addr.sin_port = htons(remote_port);
+    result = connect(client->sd, (struct sockaddr *)&addr, sizeof(addr));
+    TCP_DEBUG_PRINTF(result == -1, "Connect() failed with errno = %d [%s]", errno, strerror(errno));
+    TCP_ERR_HANDLER(result != 0, free(client); return TCP_SOCKOP_ERROR);
+    memset(&addr, 0, sizeof(struct sockaddr_in));
+    length = sizeof(addr);
+    result = getsockname(client->sd, (struct sockaddr *)&addr, (socklen_t *)&length);
+    TCP_DEBUG_PRINTF(result == -1, "getsockname() failed with errno = %d [%s]", errno, strerror(errno));
+    TCP_ERR_HANDLER(result != 0, free(client); return TCP_SOCKOP_ERROR);
+    p = inet_ntoa(addr.sin_addr); // returns addr to statically allocated buffer
+    client->ip_addr = (char *)malloc(sizeof(char) * CHAR_IP_ADDR_LENGTH);
+    TCP_ERR_HANDLER(client->ip_addr == NULL, free(client); return TCP_MEMORY_ERROR);
+    client->ip_addr = strncpy(client->ip_addr, p, CHAR_IP_ADDR_LENGTH);
+    client->port = ntohs(addr.sin_port);
+    client->cookie = MAGIC_COOKIE;
+    *sock = client;
+    return TCP_NO_ERROR;
+}
+
+int tcp_close(tcpsock_t **socket)
+{
+    int result;
+    if (socket == NULL)
+        return TCP_SOCKET_ERROR;
+    if (*socket == NULL)
+        return TCP_SOCKET_ERROR;
+    if ((*socket)->cookie == MAGIC_COOKIE) // socket is bound
+    {
+        if ((*socket)->ip_addr != NULL) // then assume memory is allocated and must be freed
+        {
+            free((*socket)->ip_addr);
+        }
+        if ((*socket)->sd >= 0)
+        {
+            // maybe a connection is still open?
+            result = shutdown((*socket)->sd, SHUT_RDWR);
+            // if ((result of shutdown==-1)&&(errno!=ENOTCONN)) //socket wasn't connected
+            TCP_DEBUG_PRINTF(result == -1, "Shutdown() failed with errno = %d [%s]", errno, strerror(errno));
+            if (result != -1)
+            {
+                result = close((*socket)->sd); // try to close the socket descriptor
+                TCP_DEBUG_PRINTF(result == -1, "Close() failed with errno = %d [%s]", errno, strerror(errno));
+            }
+        }
+    }
+    // overwrite memory before free to make socket invalid (even if memory is accidently reused)!
+    (*socket)->cookie = 0;
+    (*socket)->port = -1;
+    (*socket)->sd = -1;
+    (*socket)->ip_addr = NULL;
+    free(*socket);
+    *socket = NULL;
+    return TCP_NO_ERROR;
+}
+
+int tcp_wait_for_connection(tcpsock_t *socket, tcpsock_t **new_socket)
+{
+    struct sockaddr_in addr;
+    tcpsock_t *s;
+    unsigned int length = sizeof(struct sockaddr_in);
+    char *p;
+    TCP_ERR_HANDLER(socket == NULL, return TCP_SOCKET_ERROR);
+    TCP_ERR_HANDLER(socket->cookie != MAGIC_COOKIE, return TCP_SOCKET_ERROR);
+    s = tcp_sock_create();
+    TCP_ERR_HANDLER(s == NULL, return TCP_MEMORY_ERROR);
+    s->sd = accept(socket->sd, (struct sockaddr *)&addr, &length);
+    TCP_DEBUG_PRINTF(s->sd == -1, "Accept() failed with errno = %d [%s]", errno, strerror(errno));
+    TCP_ERR_HANDLER(s->sd == -1, free(s); return TCP_SOCKOP_ERROR);
+    p = inet_ntoa(addr.sin_addr); // returns addr to statically allocated buffer
+    s->ip_addr = (char *)malloc(sizeof(char) * CHAR_IP_ADDR_LENGTH);
+    TCP_ERR_HANDLER(s->ip_addr == NULL, free(s); return TCP_MEMORY_ERROR);
+    s->ip_addr = strncpy(s->ip_addr, p, CHAR_IP_ADDR_LENGTH);
+    s->port = ntohs(addr.sin_port);
+    s->cookie = MAGIC_COOKIE;
+    *new_socket = s;
+    return TCP_NO_ERROR;
+}
+
+int tcp_send(tcpsock_t *socket, void *buffer, int *buf_size)
+{
+    TCP_ERR_HANDLER(socket == NULL, return TCP_SOCKET_ERROR);
+    TCP_ERR_HANDLER(socket->cookie != MAGIC_COOKIE, return TCP_SOCKET_ERROR);
+    if ((buffer == NULL) || (buf_size == 0)) // nothing to send
+    {
+        *buf_size = 0;
+        return TCP_NO_ERROR;
+    }
+    // if socket is not connected, a SIGPIPE signal is sent which terminates the program (default behaviour)
+    //*buf_size = sendto(socket->sd, (const void*)buffer,*buf_size, 0, NULL, 0);
+    // use MSG_NOSIGNAL flag to avoid a signal to be sent
+    *buf_size = sendto(socket->sd, (const void *)buffer, *buf_size, MSG_NOSIGNAL, NULL, 0);
+    TCP_DEBUG_PRINTF((*buf_size == 0), "Send() : no connection to peer\n");
+    TCP_ERR_HANDLER(*buf_size == 0, return TCP_CONNECTION_CLOSED);
+    TCP_DEBUG_PRINTF(((*buf_size < 0) && ((errno == EPIPE) || (errno == ENOTCONN))),
+                     "Send() : no connection to peer\n");
+    TCP_ERR_HANDLER(((*buf_size < 0) && ((errno == EPIPE) || (errno == ENOTCONN))), return TCP_CONNECTION_CLOSED);
+    TCP_DEBUG_PRINTF(*buf_size < 0, "Send() failed with errno = %d [%s]", errno, strerror(errno));
+    TCP_ERR_HANDLER(*buf_size < 0, return TCP_SOCKOP_ERROR);
+    return TCP_NO_ERROR;
+}
+
+int tcp_receive(tcpsock_t *socket, void *buffer, int *buf_size)
+{
+    TCP_ERR_HANDLER(socket == NULL, return TCP_SOCKET_ERROR);
+    TCP_ERR_HANDLER(socket->cookie != MAGIC_COOKIE, return TCP_SOCKET_ERROR);
+    if ((buffer == NULL) || (buf_size == 0)) // nothing to read
+    {
+        *buf_size = 0;
+        return TCP_NO_ERROR;
+    }
+    *buf_size = recv(socket->sd, buffer, *buf_size, 0);
+    TCP_DEBUG_PRINTF(*buf_size == 0, "Recv() : no connection to peer\n");
+    TCP_ERR_HANDLER(*buf_size == 0, return TCP_CONNECTION_CLOSED);
+    TCP_DEBUG_PRINTF((*buf_size < 0) && (errno == ENOTCONN), "Recv() : no connection to peer\n");
+    TCP_ERR_HANDLER((*buf_size < 0) && (errno == ENOTCONN), return TCP_CONNECTION_CLOSED);
+    TCP_DEBUG_PRINTF(*buf_size < 0, "Recv() failed with errno = %d [%s]", errno, strerror(errno));
+    TCP_ERR_HANDLER(*buf_size < 0, return TCP_SOCKOP_ERROR);
+    // add your code here
+    TCP_DEBUG_PRINTF((*buf_size == -1) && (errno == EAGAIN), "Recv() timed out\n");
+    TCP_ERR_HANDLER((*buf_size == -1) && (errno == EAGAIN), return TCP_CONNECTION_CLOSED);
+    return TCP_NO_ERROR;
+}
+
+int tcp_get_ip_addr(tcpsock_t *socket, char **ip_addr)
+{
+    TCP_ERR_HANDLER(socket == NULL, return TCP_SOCKET_ERROR);
+    TCP_ERR_HANDLER(socket->cookie != MAGIC_COOKIE, return TCP_SOCKET_ERROR);
+    *ip_addr = socket->ip_addr;
+    return TCP_NO_ERROR;
+}
+
+int tcp_get_port(tcpsock_t *socket, int *port)
+{
+    TCP_ERR_HANDLER(socket == NULL, return TCP_SOCKET_ERROR);
+    TCP_ERR_HANDLER(socket->cookie != MAGIC_COOKIE, return TCP_SOCKET_ERROR);
+    *port = socket->port;
+    return TCP_NO_ERROR;
+}
+
+int tcp_get_sd(tcpsock_t *socket, int *sd)
+{
+    TCP_ERR_HANDLER(socket == NULL, return TCP_SOCKET_ERROR);
+    TCP_ERR_HANDLER(socket->cookie != MAGIC_COOKIE, return TCP_SOCKET_ERROR);
+    *sd = socket->sd;
+    return TCP_NO_ERROR;
+}
+
+static tcpsock_t *tcp_sock_create()
+{
+    tcpsock_t *s = (tcpsock_t *)malloc(sizeof(tcpsock_t));
+    if (s) // init the socket to default values
+    {
+        s->cookie = 0; // socket is not yet bound!
+        s->port = -1;
+        s->ip_addr = NULL;
+        s->sd = -1;
+    }
+    return s;
+}
+
+----- End of tcpsock.c -----
+

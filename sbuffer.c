@@ -1,82 +1,119 @@
 /**
- * \Juncheng Zhu
+ * \author Wentai Ye
  */
 
-#include <stdlib.h>
-#include <stdio.h>
 #include "sbuffer.h"
-#include "config.h"
 
+pthread_mutex_t mutex_pipe;         // Mutex for the log file
+pthread_mutex_t mutex_sbuffer_head; // Mutex for the shared buffer
+pthread_mutex_t mutex_sbuffer_tail; // Mutex for the shared buffer
+pthread_cond_t cond;                // Condition variable for the storage manager thread
 
-int sbuffer_init(sbuffer_t **buffer) 
+/**
+ * basic node for the sbuffer, these nodes are linked together to create the sbuffer
+ */
+struct sbuffer_node
 {
-    *buffer = malloc(sizeof(sbuffer_t));
-    if (*buffer == NULL) return SBUFFER_FAILURE;
-    (*buffer)->head = NULL;
-    (*buffer)->tail = NULL;
+    struct sbuffer_node *next; /**< a pointer to the next node*/
+    sensor_data_t data;        /**< a structure containing the data */
+};
+
+/**
+ * a structure to keep track of the sbuffer
+ */
+struct sbuffer
+{
+    sbuffer_node_t *head; /**< a pointer to the first node in the sbuffer */
+    sbuffer_node_t *tail; /**< a pointer to the last node in the sbuffer */
+    int count;            /**< the number of nodes in the sbuffer */
+};
+
+int sbuffer_init(sbuffer_t **sbuffer)
+{
+    *sbuffer = malloc(sizeof(sbuffer_t));
+    if (*sbuffer == NULL)
+        return SBUFFER_FAILURE;
+    (*sbuffer)->head = NULL;
+    (*sbuffer)->tail = NULL;
+    (*sbuffer)->count = 0;
+    pthread_cond_init(&cond, NULL);                // Initialize the condition variable
+    pthread_mutex_init(&mutex_sbuffer_head, NULL); // Initialize the mutex for the shared buffer
+    pthread_mutex_init(&mutex_sbuffer_tail, NULL); // Initialize the mutex for the shared buffer
     return SBUFFER_SUCCESS;
 }
 
-int sbuffer_free(sbuffer_t **buffer) 
+int sbuffer_free(sbuffer_t **sbuffer)
 {
-    sbuffer_node_t *dummy;
-    if ((buffer == NULL) || (*buffer == NULL)) 
-        return SBUFFER_FAILURE;
-
-    while (((*buffer)->head) != NULL) 
+    if ((sbuffer == NULL) || (*sbuffer == NULL))
     {
-        dummy = (*buffer)->head;
-        (*buffer)->head = (*buffer)->head->next;
+        return SBUFFER_FAILURE;
+    }
+    while ((*sbuffer)->head)
+    { // free all nodes
+        sbuffer_node_t *dummy;
+        dummy = (*sbuffer)->head;
+        (*sbuffer)->head = (*sbuffer)->head->next;
         free(dummy);
     }
-    free(*buffer);
-    *buffer = NULL;
+    free(*sbuffer);
+    *sbuffer = NULL;
     return SBUFFER_SUCCESS;
 }
 
-int sbuffer_remove(sbuffer_t *buffer, sensor_data_t *data) 
+int sbuffer_remove(sbuffer_t *sbuffer, sensor_data_t *data)
 {
-    sbuffer_node_t *dummy;
-    if (buffer == NULL) 
+    if (sbuffer == NULL)
         return SBUFFER_FAILURE;
-    if (buffer->head == NULL) 
+    if (sbuffer->head == NULL)
+    {
         return SBUFFER_NO_DATA;
-    *data = buffer->head->data;
-    dummy = buffer->head;
-    if (buffer->head == buffer->tail) // buffer has only one node
-        buffer->head = buffer->tail = NULL;
-    else  // buffer has many nodes empty
-        buffer->head = buffer->head->next;
-    free(dummy);
+    }
+    *data = sbuffer->head->data;
+    pthread_mutex_lock(&mutex_sbuffer_head);
+
+    if (sbuffer->head == sbuffer->tail) // sbuffer has only one node
+        sbuffer->head = sbuffer->tail = NULL;
+    else // sbuffer has many nodes empty
+        sbuffer->head = sbuffer->head->next;
+    sbuffer->count--;
+    pthread_cond_signal(&cond); // Signal the condition variable
+    pthread_mutex_unlock(&mutex_sbuffer_head);
     return SBUFFER_SUCCESS;
 }
 
-int sbuffer_get(sbuffer_t *buffer, sensor_data_t *data) 
+int sbuffer_read(sbuffer_t *sbuffer, sensor_data_t *data)
 {
-    if (buffer == NULL) 
+    if (sbuffer == NULL)
         return SBUFFER_FAILURE;
-    if (buffer->head == NULL) 
+    if (sbuffer->head == NULL)
         return SBUFFER_NO_DATA;
-    *data = buffer->head->data;
+    *data = sbuffer->head->data;
+    pthread_cond_wait(&cond, &mutex_sbuffer_head); // Wait for the condition variable
     return SBUFFER_SUCCESS;
 }
 
-int sbuffer_insert(sbuffer_t *buffer, sensor_data_t *data) 
+int sbuffer_insert(sbuffer_t *sbuffer, sensor_data_t *data)
 {
-    sbuffer_node_t *dummy;
-    if (buffer == NULL) 
+    if (sbuffer == NULL)
         return SBUFFER_FAILURE;
-    dummy = malloc(sizeof(sbuffer_node_t));
-    if (dummy == NULL) 
+
+    sbuffer_node_t *dummy = malloc(sizeof(sbuffer_node_t));
+    if (dummy == NULL)
         return SBUFFER_FAILURE;
+
+    pthread_mutex_lock(&mutex_sbuffer_tail);
     dummy->data = *data;
     dummy->next = NULL;
-    if (buffer->tail == NULL) // buffer empty (buffer->head should also be NULL
-        buffer->head = buffer->tail = dummy;
-    else // buffer not empty
+    if (sbuffer->tail == NULL) // sbuffer empty (sbuffer->head should also be NULL
     {
-        buffer->tail->next = dummy;
-        buffer->tail = buffer->tail->next;
+        sbuffer->head = sbuffer->tail = dummy;
     }
+    else // sbuffer not empty
+    {
+        sbuffer->tail->next = dummy;
+        sbuffer->tail = sbuffer->tail->next;
+    }
+    pthread_mutex_unlock(&mutex_sbuffer_tail);
+    sbuffer->count++;
     return SBUFFER_SUCCESS;
 }
